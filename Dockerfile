@@ -1,29 +1,21 @@
-FROM node:20-bullseye-slim
-
-# Install system dependencies for canvas and image tools
+FROM node:20-bookworm-slim
+# Install system dependencies for canvas
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libcairo2-dev \
     libpango1.0-dev \
-    libjpeg-dev \
+    libjpeg62-turbo-dev \
     libgif-dev \
     librsvg2-dev \
+    python3 \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
-
 WORKDIR /app
-
 # Copy package info
 COPY package*.json ./
-
-# Install npm dependencies
-RUN npm install
-
-# Copy application source code
+# Install dependencies
+RUN npm install --omit=dev
+# Copy application files
 COPY . .
-
-# Hugging Face Spaces port is 7860
-ENV PORT=7860
-EXPOSE 7860
-
-# Start app
+# Start application (Render assigns PORT automatically)
 CMD ["node", "index.js"]
