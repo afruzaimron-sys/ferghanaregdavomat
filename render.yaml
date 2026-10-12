@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: ferghanaregdavomat
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: NODE_VERSION
+        value: 18.0.0
+      - key: BOT_TOKEN
+        sync: false
+      - key: GOOGLE_SCRIPT_URL
+        sync: false
+      - key: PORT
+        value: 3000
+      - key: DATABASE_URL
+        sync: false
