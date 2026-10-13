@@ -593,15 +593,29 @@ const attendanceWizard = new Scenes.WizardScene(
                 // Send to Report Group (Main Text)
                 const tid = getTopicId(d.district);
                 if (tid) {
-                    await ctx.telegram.sendMessage(REPORT_GROUP_ID, report, { parse_mode: 'HTML', message_thread_id: tid });
+                    try {
+                        await ctx.telegram.sendMessage(REPORT_GROUP_ID, report, { parse_mode: 'HTML', message_thread_id: tid });
+                    } catch (tgReportErr) {
+                        console.warn("Topic report HTML send error, retrying plain text:", tgReportErr.message);
+                        try {
+                            const plainReport = report.replace(/<[^>]*>/g, '');
+                            await ctx.telegram.sendMessage(REPORT_GROUP_ID, plainReport, { message_thread_id: tid });
+                        } catch (plainErr) {
+                            console.error("Topic report fallback error:", plainErr.message);
+                        }
+                    }
                 }
 
                 // Agar foydalanuvchi o'zi rasm/pdf yuklagan bo'lsa, uni ham guruhga tashlaymiz
                 if (d.report_file_id && tid) {
-                    if (d.report_type === 'document') {
-                        await ctx.telegram.sendDocument(REPORT_GROUP_ID, d.report_file_id, { caption: "📄 Yuklangan bildirgi", message_thread_id: tid });
-                    } else if (d.report_type === 'photo') {
-                        await ctx.telegram.sendPhoto(REPORT_GROUP_ID, d.report_file_id, { caption: "📸 Yuklangan bildirgi", message_thread_id: tid });
+                    try {
+                        if (d.report_type === 'document') {
+                            await ctx.telegram.sendDocument(REPORT_GROUP_ID, d.report_file_id, { caption: "📄 Yuklangan bildirgi", message_thread_id: tid });
+                        } else if (d.report_type === 'photo') {
+                            await ctx.telegram.sendPhoto(REPORT_GROUP_ID, d.report_file_id, { caption: "📸 Yuklangan bildirgi", message_thread_id: tid });
+                        }
+                    } catch (fErr) {
+                        console.error("Bildirgi forward to topic error:", fErr.message);
                     }
                 }
 

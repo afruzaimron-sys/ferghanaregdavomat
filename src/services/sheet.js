@@ -111,37 +111,55 @@ async function getMissingSchools() {
         const { getFargonaTime } = require('../utils/fargona');
         const db_pg = require('../database/pg');
         const topicsConfig = require('../config/topics');
-        const { normalizeKey } = require('../utils/topics');
+        const { normalizeKey, normalizeSchool } = require('../utils/topics');
         const schoolsData = require('../database/schools.json');
 
         const now = getFargonaTime();
         const today = now.toISOString().split('T')[0];
 
+        let reportedRows = [];
         if (process.env.DATABASE_URL) {
-            const reportedRes = await db_pg.query(
-                `SELECT DISTINCT school, district FROM attendance WHERE date = $1`,
-                [today]
-            );
+            try {
+                const reportedRes = await db_pg.query(
+                    `SELECT DISTINCT school, district FROM attendance WHERE date = $1`,
+                    [today]
+                );
+                reportedRows = reportedRes.rows || [];
+            } catch (pgErr) {
+                console.warn("PostgreSQL getMissingSchools query error:", pgErr.message);
+            }
+        }
 
-            const topics = topicsConfig.getTopics();
-            const districts = Object.keys(topics).filter(d => d !== "Test rejimi" && d !== "MMT Boshqarma");
+        // Fallback to SQLite if PG returned no rows or is down
+        if (reportedRows.length === 0) {
+            try {
+                const sqliteDb = require('../database/sqlite');
+                reportedRows = sqliteDb.prepare("SELECT DISTINCT school, district FROM attendance WHERE date = ?").all(today);
+            } catch (sqErr) {}
+        }
 
-            const missing = {};
-            for (const distName of districts) {
-                const normD = normalizeKey(distName);
-                const straight = distName.replace(/[‘’`]/g, "'");
-                const allSchools = schoolsData[straight] || schoolsData[distName] || [];
+        const topics = topicsConfig.getTopics();
+        const districts = Object.keys(topics).filter(d => d !== "Test rejimi" && d !== "MMT Boshqarma");
 
-                const reportedSchoolsInDist = (reportedRes.rows || [])
-                    .filter(r => normalizeKey(r.district) === normD)
-                    .map(r => normalizeKey(r.school));
-
-                const missingInDist = allSchools.filter(s => !reportedSchoolsInDist.includes(normalizeKey(s)));
-                missing[distName] = missingInDist;
+        const missing = {};
+        for (const distName of districts) {
+            const normD = normalizeKey(distName);
+            const straight = distName.replace(/[‘’`]/g, "'");
+            let allSchools = schoolsData[straight] || schoolsData[distName] || [];
+            if (allSchools.length === 0) {
+                const foundKey = Object.keys(schoolsData).find(k => normalizeKey(k) === normD);
+                if (foundKey) allSchools = schoolsData[foundKey] || [];
             }
 
-            return { missing };
+            const reportedSchoolsInDist = reportedRows
+                .filter(r => normalizeKey(r.district) === normD)
+                .map(r => normalizeSchool(r.school));
+
+            const missingInDist = allSchools.filter(s => !reportedSchoolsInDist.includes(normalizeSchool(s)));
+            missing[distName] = missingInDist;
         }
+
+        return { missing };
     } catch (e) {
         console.warn("Database getMissingSchools fallback to Google Sheet:", e.message);
     }

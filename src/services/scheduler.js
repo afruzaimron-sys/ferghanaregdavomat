@@ -3,7 +3,7 @@ const cron = require('node-cron');
 const { getViloyatSvod, exportToExcel, getTumanSvod } = require('./dataService');
 const { getFargonaTime } = require('../utils/fargona');
 const topicsConfig = require('../config/topics');
-const { getTopicId, normalizeKey } = require('../utils/topics');
+const { getTopicId, normalizeKey, normalizeSchool } = require('../utils/topics');
 const db = require('../database/db');
 const config = require('../config/config');
 const { DISTRICT_HEADS } = require('../config/config');
@@ -327,28 +327,42 @@ async function sendPendingReportsWarning() {
 
     try {
         const db_pg = require('../database/pg');
-        const { schools_db } = require('../database/db');
+        const schoolsData = require('../database/schools.json');
         const topics = topicsConfig.getTopics();
         const districts = Object.keys(topics).filter(d => d !== "Test rejimi" && d !== "MMT Boshqarma");
+
+        let allReported = [];
+        try {
+            const reportedRes = await db_pg.query(
+                `SELECT DISTINCT district, school FROM attendance WHERE date = $1`,
+                [dateStr]
+            );
+            allReported = reportedRes.rows || [];
+        } catch (dbErr) {
+            console.error("[CRON] Database error in pending reports:", dbErr.message);
+        }
+
+        if (allReported.length === 0) {
+            try {
+                const sqliteDb = require('../database/sqlite');
+                allReported = sqliteDb.prepare("SELECT DISTINCT district, school FROM attendance WHERE date = ?").all(dateStr);
+            } catch (sqErr) {}
+        }
 
         for (const distName of districts) {
             try {
                 const topicId = getTopicId(distName);
                 if (!topicId) continue;
 
-                const straightDist = distName.replace(/[‘’`]/g, "'");
-                const curlyDist = distName.replace(/['’`]/g, "‘");
+                const normD = normalizeKey(distName);
+                const allSchoolsInDist = getDistrictSchools(distName, schoolsData);
+                if (!allSchoolsInDist || allSchoolsInDist.length === 0) continue;
 
-                const reportedRes = await db_pg.query(
-                    `SELECT school FROM attendance WHERE (district = $1 OR district = $2 OR district = $3) AND date = $4`,
-                    [distName, straightDist, curlyDist, dateStr]
-                );
-                const reportedSchoolsNorm = (reportedRes.rows || []).map(r => normalizeKey(r.school));
+                const reportedSchoolsInDist = allReported
+                    .filter(r => normalizeKey(r.district) === normD)
+                    .map(r => normalizeSchool(r.school));
 
-                const allSchoolsInDist = getDistrictSchools(distName, schools_db);
-                if (allSchoolsInDist.length === 0) continue;
-
-                const missingSchools = allSchoolsInDist.filter(s => !reportedSchoolsNorm.includes(normalizeKey(s)));
+                const missingSchools = allSchoolsInDist.filter(s => !reportedSchoolsInDist.includes(normalizeSchool(s)));
 
                 if (missingSchools.length > 0) {
                     let msg = `⚠️ <b>DIQQAT: HISOBOT TOPSHIRMAGAN MAKTABLAR</b>\n`;
@@ -404,32 +418,47 @@ async function sendFinalReportsSummary(timeStr) {
 
     try {
         const db_pg = require('../database/pg');
-        const { schools_db } = require('../database/db');
+        const schoolsData = require('../database/schools.json');
         const topics = topicsConfig.getTopics();
         const districts = Object.keys(topics).filter(d => d !== "Test rejimi" && d !== "MMT Boshqarma");
+
+        let allReported = [];
+        try {
+            const reportedRes = await db_pg.query(
+                `SELECT DISTINCT district, school FROM attendance WHERE date = $1`,
+                [dateStr]
+            );
+            allReported = reportedRes.rows || [];
+        } catch (dbErr) {
+            console.error("[CRON] Database error in final summary:", dbErr.message);
+        }
+
+        if (allReported.length === 0) {
+            try {
+                const sqliteDb = require('../database/sqlite');
+                allReported = sqliteDb.prepare("SELECT DISTINCT district, school FROM attendance WHERE date = ?").all(dateStr);
+            } catch (sqErr) {}
+        }
 
         for (const distName of districts) {
             try {
                 const topicId = getTopicId(distName);
                 if (!topicId) continue;
 
-                const straightDist = distName.replace(/[‘’`]/g, "'");
-                const curlyDist = distName.replace(/['’`]/g, "‘");
+                const normD = normalizeKey(distName);
+                const allSchoolsInDist = getDistrictSchools(distName, schoolsData);
+                if (!allSchoolsInDist || allSchoolsInDist.length === 0) continue;
 
-                const reportedRes = await db_pg.query(
-                    `SELECT school FROM attendance WHERE (district = $1 OR district = $2 OR district = $3) AND date = $4`,
-                    [distName, straightDist, curlyDist, dateStr]
-                );
-                const reportedSchoolsNorm = (reportedRes.rows || []).map(r => normalizeKey(r.school));
+                const reportedSchoolsInDist = allReported
+                    .filter(r => normalizeKey(r.district) === normD)
+                    .map(r => normalizeSchool(r.school));
 
-                const allSchoolsInDist = getDistrictSchools(distName, schools_db);
-                if (allSchoolsInDist.length === 0) continue;
-
-                const missingSchools = allSchoolsInDist.filter(s => !reportedSchoolsNorm.includes(normalizeKey(s)));
+                const missingSchools = allSchoolsInDist.filter(s => !reportedSchoolsInDist.includes(normalizeSchool(s)));
 
                 let msg = "";
                 if (missingSchools.length === 0) {
                     // ALL SCHOOLS REPORTED!
+                    const straightDist = distName.replace(/[‘’`]/g, "'");
                     const head = DISTRICT_HEADS[distName] || DISTRICT_HEADS[straightDist] || { name: "tuman mas'uli" };
                     msg = `✅ <b>HAMMAGA RAHMAT!</b>\n\n`;
                     msg += `📍 Hudud: <b>${escapeHtml(distName)}</b>\n`;
