@@ -1731,9 +1731,14 @@ window.logout = logout;
 window.siteLogout = logout;
 
 /* DASHBOARD LOGIC START */
-const API_BASE = (window.location.protocol === 'file:' || (window.location.port && window.location.port !== '3000'))
-    ? 'http://localhost:3000/api'
-    : '/api';
+function getApiPrefix() {
+    if (window.location.protocol === 'file:') return 'http://localhost:3000';
+    if ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && window.location.port && window.location.port !== '3000') {
+        return 'http://localhost:3000';
+    }
+    return '';
+}
+const API_BASE = getApiPrefix() + '/api';
 
 function getAuthHeaders() {
     const token = localStorage.getItem('dashboard_token') || localStorage.getItem('token') || sessionStorage.getItem('dashboard_token') || 'test-token';
@@ -1743,9 +1748,7 @@ function getAuthHeaders() {
 async function apiFetch(url, options = {}) {
     try {
         if (!url.startsWith('http')) {
-            const hostPort = window.location.port;
-            const isLocalBackend = hostPort === '3000';
-            const prefix = (window.location.protocol === 'file:' || !isLocalBackend) ? 'http://localhost:3000' : '';
+            const prefix = getApiPrefix();
             url = prefix + (url.startsWith('/') ? url : '/' + url);
         }
         const headers = getAuthHeaders();

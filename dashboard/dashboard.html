@@ -2402,15 +2402,21 @@ body, body.page-dashboard {
             }
         }
 
+        function getApiPrefix() {
+            if (window.location.protocol === 'file:') return 'http://localhost:3000';
+            if ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && window.location.port && window.location.port !== '3000') {
+                return 'http://localhost:3000';
+            }
+            return '';
+        }
+
         async function apiFetch(url) {
             try {
                 if (!url.startsWith('http')) {
-                    const hostPort = window.location.port;
-                    const isLocalBackend = hostPort === '3000';
-                    const prefix = (window.location.protocol === 'file:' || !isLocalBackend) ? 'http://localhost:3000' : '';
+                    const prefix = getApiPrefix();
                     url = prefix + (url.startsWith('/') ? url : '/' + url);
                 }
-                let currentToken = localStorage.getItem('dashboard_token') || 'test-token';
+                let currentToken = localStorage.getItem('dashboard_token') || localStorage.getItem('token') || sessionStorage.getItem('dashboard_token') || 'test-token';
                 let res = await fetch(url, {
                     headers: { 'Authorization': currentToken }
                 });
@@ -2558,9 +2564,8 @@ body, body.page-dashboard {
         
         async function fetchXorijDashboardStats() {
             try {
-                const res = await fetch('/api/xorij', {headers:{'Authorization': localStorage.getItem('dashboard_token')||'test-token'}}).catch(() => null);
-                if (!res || !res.ok) return;
-                const json = await res.json();
+                const json = await apiFetch('/api/xorij').catch(() => null);
+                if (!json) return;
                 let list = json.data || json || [];
                 let leg=0, ill=0, ret=0;
                 list.forEach(k => {
@@ -2580,6 +2585,16 @@ body, body.page-dashboard {
         }
         setInterval(fetchXorijDashboardStats, 30000);
         setTimeout(fetchXorijDashboardStats, 1500);
+
+        // Listen for map widget ready event
+        window.addEventListener('message', (e) => {
+            if (e.data && e.data.type === 'mapWidgetReady' && window.lastViloyatData) {
+                const mapIframe = document.getElementById('ferganaMapIframe');
+                if (mapIframe && mapIframe.contentWindow) {
+                    try { mapIframe.contentWindow.postMessage({ type: 'updateStats', data: window.lastViloyatData }, '*'); } catch(err){}
+                }
+            }
+        });
 
 
 async function loadViloyatData() {
@@ -2642,6 +2657,15 @@ async function loadViloyatData() {
 
                 const elTotalStudV = document.getElementById('v_total_students');
                 if (elTotalStudV) elTotalStudV.textContent = totalS;
+
+                // Sync data with map widget and memory
+                window.lastViloyatData = data;
+                try {
+                    const mapIframe = document.getElementById('ferganaMapIframe');
+                    if (mapIframe && mapIframe.contentWindow) {
+                        mapIframe.contentWindow.postMessage({ type: 'updateStats', data: data }, '*');
+                    }
+                } catch(e) {}
 
                 renderHeatmap(data);
             } catch (e) {

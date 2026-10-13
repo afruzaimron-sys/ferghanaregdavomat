@@ -1186,10 +1186,11 @@
     // Live stats fetch from API
     async function loadLiveXaritaStats() {
       try {
-        const token = localStorage.getItem('dashboard_token') || localStorage.getItem('token') || sessionStorage.getItem('dashboard_token');
-        const apiHost = (window.location.origin.includes(':3000') || window.location.port === '3000') ? '' : 'http://localhost:3000';
+        const token = localStorage.getItem('dashboard_token') || localStorage.getItem('token') || sessionStorage.getItem('dashboard_token') || 'test-token';
+        const isLocalDev = (window.location.protocol === 'file:' || ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && window.location.port && window.location.port !== '3000'));
+        const apiHost = isLocalDev ? 'http://localhost:3000' : '';
         const res = await fetch(apiHost + '/api/stats/viloyat', {
-          headers: token ? { 'Authorization': token } : {}
+          headers: { 'Authorization': token }
         });
         if (res.ok) {
           const data = await res.json();

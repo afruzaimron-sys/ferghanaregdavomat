@@ -542,6 +542,8 @@
         
         let allStudents = [];
 
+        const normDist = (d) => String(d || '').replace(/[‘`ʻ’]/g, "'").trim();
+
         document.addEventListener('DOMContentLoaded', () => {
             const distSelect = document.getElementById('xDistrict');
             DISTRICTS.forEach(d => distSelect.add(new Option(d, d)));
@@ -562,26 +564,53 @@
             const d = document.getElementById('xDistrict').value;
             const select = document.getElementById('xSchool');
             select.innerHTML = '<option value="">Yuklanmoqda...</option>';
-            if(!d) return;
+            if(!d) {
+                select.innerHTML = '<option value="">Avval tumanni tanlang</option>';
+                return;
+            }
             try {
                 const res = await fetch(`/api/schools?district=${encodeURIComponent(d)}`);
-                const schools = await res.json();
+                if (res.ok) {
+                    const schools = await res.json();
+                    if (Array.isArray(schools) && schools.length > 0) {
+                        select.innerHTML = '<option value="">Maktabni tanlang</option>';
+                        schools.forEach(s => select.add(new Option(s, s)));
+                        return;
+                    }
+                }
+            } catch(e) { console.warn("API schools fetch failed, trying local fallback:", e); }
+
+            // Zaxira: lokal schools.json dan yuklash
+            try {
+                const res = await fetch('schools.json');
+                const allSchools = await res.json();
+                const matchedKey = Object.keys(allSchools).find(k => normDist(k) === normDist(d)) || d;
+                const list = allSchools[matchedKey] || [];
                 select.innerHTML = '<option value="">Maktabni tanlang</option>';
-                schools.forEach(s => select.add(new Option(s, s)));
-            } catch(e) { console.error(e); }
+                list.forEach(s => select.add(new Option(s, s)));
+            } catch(e) {
+                console.error("Local schools.json fallback error:", e);
+                select.innerHTML = '<option value="">Maktablar ro\'yxatini yuklab bo\'lmadi</option>';
+            }
         }
 
         function saveSchoolAuth() {
             const d = document.getElementById('xDistrict').value;
             const s = document.getElementById('xSchool').value;
-            const f = document.getElementById('xMasul').value;
-            const t = document.getElementById('xTel').value;
-            if(!d || !s || !f || !t) return alert("Barcha maydonlarni to'ldiring!");
+            const f = document.getElementById('xMasul').value.trim() || "Mas'ul xodim";
+            const t = document.getElementById('xTel').value.trim() || "";
+            if(!d || !s) {
+                return alert("Iltimos, avval Hudud (tuman/shahar) va Maktabni tanlang!");
+            }
             localStorage.setItem('xAuthDist', d);
             localStorage.setItem('xAuthSchool', s);
             localStorage.setItem('xAuthMasul', f);
             localStorage.setItem('xAuthTel', t);
-            window.location.reload();
+
+            document.getElementById('schoolAuthSection').style.display = 'none';
+            document.getElementById('schoolDataSection').style.display = 'block';
+            document.getElementById('authSchoolName').textContent = s;
+            renderMySchoolStudents();
         }
 
         function logoutSchoolAuth() {
@@ -589,14 +618,17 @@
             localStorage.removeItem('xAuthSchool');
             localStorage.removeItem('xAuthMasul');
             localStorage.removeItem('xAuthTel');
-            window.location.reload();
+            document.getElementById('schoolAuthSection').style.display = 'block';
+            document.getElementById('schoolDataSection').style.display = 'none';
         }
 
         function switchTab(tab) {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-nav .tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.querySelector(`button[onclick="switchTab('${tab}')"]`).classList.add('active');
-            document.getElementById(tab + 'Tab').classList.add('active');
+            const activeBtn = document.querySelector(`.tab-nav button[onclick="switchTab('${tab}')"]`);
+            if (activeBtn) activeBtn.classList.add('active');
+            const targetContent = document.getElementById(tab + 'Tab');
+            if (targetContent) targetContent.classList.add('active');
         }
 
         function toggleLegalDocs() {
@@ -747,8 +779,13 @@
             e.preventDefault();
             const formData = new FormData();
             
-            formData.append('district', localStorage.getItem('xAuthDist'));
-            formData.append('school', localStorage.getItem('xAuthSchool'));
+            const distVal = localStorage.getItem('xAuthDist') || document.getElementById('xDistrict').value;
+            const schoolVal = localStorage.getItem('xAuthSchool') || document.getElementById('xSchool').value;
+            if(!distVal || !schoolVal) {
+                return alert("Iltimos, avval tuman va maktabni tanlang!");
+            }
+            formData.append('district', distVal);
+            formData.append('school', schoolVal);
             formData.append('student_name', document.getElementById('xFio').value);
             formData.append('dob', document.getElementById('xDob').value);
             formData.append('class_name', document.getElementById('xClass').value);
@@ -759,8 +796,8 @@
             formData.append('companion', document.getElementById('xCompanion').value);
             formData.append('address', document.getElementById('xAddress').value);
             formData.append('status', document.getElementById('xStatus').value);
-            formData.append('cre_masul', localStorage.getItem('xAuthMasul'));
-            formData.append('cre_tel', localStorage.getItem('xAuthTel'));
+            formData.append('cre_masul', localStorage.getItem('xAuthMasul') || document.getElementById('xMasul').value || "Mas'ul");
+            formData.append('cre_tel', localStorage.getItem('xAuthTel') || document.getElementById('xTel').value || "");
 
             if(document.getElementById('xLegal').value === 'legal') {
                 formData.append('q_sana', document.getElementById('xQsana').value);

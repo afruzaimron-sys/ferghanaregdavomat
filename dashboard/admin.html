@@ -1238,6 +1238,73 @@
             </div>
         </div>
 
+        <!-- Webda Ro'yxatdan O'tgan Mas'ullar (10 tadan varoqlash / pagination) -->
+        <div class="card" id="webUsersCard" style="margin-top: 25px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+                <div>
+                    <h3 style="margin: 0; color: #f8fafc; font-size: 1.25rem; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-id-card" style="color: #10b981;"></i> Webda Ro'yxatdan O'tgan Mas'ullar (Elektron ID Karta)
+                        <span id="webUsersTotalBadge" style="background: rgba(16,185,129,0.2); color: #10b981; border: 1px solid rgba(16,185,129,0.4); font-size: 0.75rem; padding: 2px 10px; border-radius: 12px; font-weight: 700;">0 ta</span>
+                    </h3>
+                    <p style="margin: 5px 0 0; font-size: 0.85rem; color: #94a3b8;">
+                        Web sahifada davomat kiritish va ID-karta olish uchun ro'yxatdan o'tgan mas'ullar (Har bir sahifada 10 tadan varoqlash).
+                    </p>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <button class="btn btn-primary" onclick="loadWebRegisteredUsers(1)" style="padding: 8px 15px; font-size: 0.85rem; background: #10b981; border: none;">
+                        <i class="fas fa-sync-alt"></i> Yangilash
+                    </button>
+                </div>
+            </div>
+
+            <!-- Qidiruv va Filtr paneli -->
+            <div style="display: flex; gap: 12px; margin-bottom: 15px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 220px; position: relative;">
+                    <i class="fas fa-search" style="position: absolute; left: 12px; top: 12px; color: #94a3b8;"></i>
+                    <input type="text" id="webUserSearchInput" placeholder="F.I.SH, maktab, telefon yoki API kalit bo'yicha qidirish..." oninput="debounceWebUserSearch()" style="width: 100%; padding: 10px 12px 10px 36px; border-radius: 10px; border: 1px solid var(--glass-border); background: rgba(15,23,42,0.6); color: white; font-size: 0.85rem;">
+                </div>
+                <div style="min-width: 180px;">
+                    <select id="webUserDistrictFilter" onchange="loadWebRegisteredUsers(1)" style="width: 100%; padding: 10px; border-radius: 10px; border: 1px solid var(--glass-border); background: rgba(15,23,42,0.8); color: white; font-size: 0.85rem;">
+                        <option value="">Barcha tumanlar</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Foydalanuvchilar Jadvali -->
+            <div style="overflow-x: auto; border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.2);">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+                    <thead>
+                        <tr style="background: rgba(255,255,255,0.06); border-bottom: 1px solid var(--glass-border); color: #cbd5e1;">
+                            <th style="padding: 12px 14px; width: 40px;">#</th>
+                            <th style="padding: 12px 14px; width: 60px;">Rasm</th>
+                            <th style="padding: 12px 14px;">Mas'ul F.I.SH</th>
+                            <th style="padding: 12px 14px;">Hudud va Maktab</th>
+                            <th style="padding: 12px 14px;">Telefon</th>
+                            <th style="padding: 12px 14px;">API Kalit (ID)</th>
+                            <th style="padding: 12px 14px;">Ro'yxatdan o'tgan / Faollik</th>
+                            <th style="padding: 12px 14px; text-align: center;">Amallar</th>
+                        </tr>
+                    </thead>
+                    <tbody id="webUsersTableBody">
+                        <tr>
+                            <td colspan="8" style="padding: 30px; text-align: center; color: #94a3b8;">
+                                <i class="fas fa-spinner fa-spin"></i> Ro'yxat yuklanmoqda...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 10 tadan varoqlash / Pagination Footer -->
+            <div id="webUsersPagination" style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; flex-wrap: wrap; gap: 10px;">
+                <div id="webUsersPageInfo" style="font-size: 0.85rem; color: #94a3b8;">
+                    Jami: 0 ta mas'ul | Sahifa 1 / 1
+                </div>
+                <div style="display: flex; gap: 6px; align-items: center;" id="webUsersPageButtons">
+                    <!-- Dinamik sahifalar -->
+                </div>
+            </div>
+        </div>
 
     </div>
 
@@ -2256,6 +2323,158 @@
         }
         setTimeout(loadDesktopDevices, 1000);
         setInterval(loadDesktopDevices, 15000);
+
+        // --- Webda Ro'yxatdan O'tgan Mas'ullar (10 tadan varoqlash / pagination) ---
+        let currentWebUserPage = 1;
+        const webUserPageLimit = 10;
+        let webUserSearchTimer = null;
+
+        function debounceWebUserSearch() {
+            clearTimeout(webUserSearchTimer);
+            webUserSearchTimer = setTimeout(() => {
+                loadWebRegisteredUsers(1);
+            }, 350);
+        }
+
+        async function loadWebRegisteredUsers(page = 1) {
+            currentWebUserPage = page;
+            const tbody = document.getElementById('webUsersTableBody');
+            if (!tbody) return;
+
+            // Tuman filterini to'ldirish (bir marta)
+            const distFilter = document.getElementById('webUserDistrictFilter');
+            if (distFilter && distFilter.options.length <= 1) {
+                const dList = ["Farg'ona shahri", "Marg'ilon shahri", "Qo'qon shahri", "Quvasoy shahri", "Bag'dod tumani", "Beshariq tumani", "Buvayda tumani", "Dang'ara tumani", "Yozyovon tumani", "Oltiariq tumani", "Qo'shtepa tumani", "Rishton tumani", "So'x tumani", "Toshloq tumani", "Uchko'prik tumani", "Farg'ona tumani", "Furqat tumani", "O'zbekiston tumani", "Quva tumani"];
+                dList.forEach(d => distFilter.add(new Option(d, d)));
+            }
+
+            const search = (document.getElementById('webUserSearchInput')?.value || '').trim();
+            const district = document.getElementById('webUserDistrictFilter')?.value || '';
+
+            try {
+                const url = `/api/admin/web-registered-users?page=${page}&limit=${webUserPageLimit}&search=${encodeURIComponent(search)}&district=${encodeURIComponent(district)}`;
+                const res = await fetch(url, { headers: { 'Authorization': token } });
+                if (!res.ok) throw new Error("Yuklashda xatolik yuz berdi");
+                const data = await res.json();
+
+                const users = data.users || [];
+                const total = data.total || 0;
+                const totalPages = data.total_pages || 1;
+
+                // Badge yangilash
+                const badge = document.getElementById('webUsersTotalBadge');
+                if (badge) badge.textContent = `${total} ta`;
+
+                // Page info yangilash
+                const pageInfo = document.getElementById('webUsersPageInfo');
+                if (pageInfo) {
+                    const startIdx = total === 0 ? 0 : (page - 1) * webUserPageLimit + 1;
+                    const endIdx = Math.min(page * webUserPageLimit, total);
+                    pageInfo.innerHTML = `Ko'rsatilmoqda: <b>${startIdx}-${endIdx}</b> | Jami: <b>${total} ta</b> | Sahifa: <b>${page} / ${totalPages}</b>`;
+                }
+
+                if (users.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="8" style="padding:30px; text-align:center; color:#94a3b8;"><i class="fas fa-id-card-clip fa-2x"></i><br><br>Hozircha ro'yxatdan o'tgan mas'ullar topilmadi</td></tr>`;
+                    renderWebUserPagination(1, 1);
+                    return;
+                }
+
+                tbody.innerHTML = users.map((u, i) => {
+                    const itemNum = (page - 1) * webUserPageLimit + (i + 1);
+                    const avatarHtml = u.photo_url 
+                        ? `<img src="${u.photo_url}" onclick="openReceiptModal('${u.photo_url}')" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:2px solid #10b981; cursor:pointer;" alt="Avatar" onerror="this.src='assets/logo.png'">`
+                        : `<div style="width:36px; height:36px; border-radius:50%; background:rgba(16,185,129,0.2); color:#10b981; display:flex; align-items:center; justify-content:center; font-size:0.9rem; font-weight:bold;"><i class="fas fa-user"></i></div>`;
+                    
+                    const dateStr = u.created_at ? new Date(u.created_at).toLocaleDateString('uz-UZ', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', timeZone:'Asia/Tashkent' }) : '-';
+                    const phoneStr = u.phone ? `<a href="tel:${u.phone}" style="color:#38bdf8; text-decoration:none;"><i class="fas fa-phone-alt"></i> ${u.phone}</a>` : '-';
+
+                    return `
+                        <tr style="border-bottom: 1px solid var(--glass-border);">
+                            <td style="padding: 10px 14px; font-weight: bold; color: #94a3b8;">${itemNum}</td>
+                            <td style="padding: 10px 14px;">${avatarHtml}</td>
+                            <td style="padding: 10px 14px;">
+                                <div style="font-weight: 700; color: #fff;">${u.fio || 'Noma\'lum'}</div>
+                            </td>
+                            <td style="padding: 10px 14px;">
+                                <div style="font-weight: 600; color: #f8fafc;">${u.school || '-'}</div>
+                                <div style="font-size: 0.75rem; color: #94a3b8;">${u.district || '-'}</div>
+                            </td>
+                            <td style="padding: 10px 14px;">${phoneStr}</td>
+                            <td style="padding: 10px 14px;">
+                                <span style="background: rgba(56,189,248,0.15); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3); font-size: 0.75rem; padding: 3px 8px; border-radius: 8px; font-family: monospace;">
+                                    ${u.api_key || '-'}
+                                </span>
+                            </td>
+                            <td style="padding: 10px 14px; font-size: 0.8rem; color: #94a3b8;">${dateStr}</td>
+                            <td style="padding: 10px 14px; text-align: center;">
+                                <button class="btn btn-danger" onclick="deleteWebUser('${u.api_key}', '${encodeURIComponent(u.fio || '')}')" style="padding: 5px 10px; font-size: 0.75rem; border-radius: 8px; background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.4); color: #ef4444;" title="O'chirish">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+                renderWebUserPagination(page, totalPages);
+            } catch (e) {
+                tbody.innerHTML = `<tr><td colspan="8" style="padding:20px; text-align:center; color:#ef4444;">Xatolik: ${e.message}</td></tr>`;
+            }
+        }
+
+        function renderWebUserPagination(page, totalPages) {
+            const container = document.getElementById('webUsersPageButtons');
+            if (!container) return;
+
+            let html = '';
+            
+            // Oldingi tugmasi
+            html += `<button class="btn" style="padding:6px 12px; font-size:0.8rem; background:rgba(255,255,255,0.08); border:1px solid var(--glass-border); color:${page > 1 ? '#fff' : '#64748b'}; cursor:${page > 1 ? 'pointer' : 'default'};" ${page <= 1 ? 'disabled' : ''} onclick="loadWebRegisteredUsers(${page - 1})">
+                <i class="fas fa-chevron-left"></i> Oldingi
+            </button>`;
+
+            // Sahifa raqamlari
+            let startPage = Math.max(1, page - 2);
+            let endPage = Math.min(totalPages, startPage + 4);
+            if (endPage - startPage < 4) {
+                startPage = Math.max(1, endPage - 4);
+            }
+
+            for (let p = startPage; p <= endPage; p++) {
+                const isActive = p === page;
+                html += `<button class="btn" style="padding:6px 12px; font-size:0.8rem; ${isActive ? 'background:#10b981; color:#fff; font-weight:bold;' : 'background:rgba(255,255,255,0.08); color:#cbd5e1;'} border:1px solid var(--glass-border); cursor:pointer;" onclick="loadWebRegisteredUsers(${p})">${p}</button>`;
+            }
+
+            // Keyingi tugmasi
+            html += `<button class="btn" style="padding:6px 12px; font-size:0.8rem; background:rgba(255,255,255,0.08); border:1px solid var(--glass-border); color:${page < totalPages ? '#fff' : '#64748b'}; cursor:${page < totalPages ? 'pointer' : 'default'};" ${page >= totalPages ? 'disabled' : ''} onclick="loadWebRegisteredUsers(${page + 1})">
+                Keyingi <i class="fas fa-chevron-right"></i>
+            </button>`;
+
+            container.innerHTML = html;
+        }
+
+        async function deleteWebUser(key, fioEncoded) {
+            const fio = decodeURIComponent(fioEncoded);
+            if (!confirm(`Haqiqatan ham ${fio} mas'ulini web ro'yxatdan o'chirmoqchimisiz?`)) return;
+
+            try {
+                const res = await fetch(`/api/admin/web-registered-users/${key}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': token }
+                });
+                if (res.ok) {
+                    showToast("Mas'ul muvaffaqiyatli o'chirildi");
+                    loadWebRegisteredUsers(currentWebUserPage);
+                } else {
+                    alert("O'chirishda xatolik yuz berdi");
+                }
+            } catch(e) {
+                alert("Aloqa xatosi: " + e.message);
+            }
+        }
+
+        // Boshlang'ich yuklash
+        setTimeout(() => loadWebRegisteredUsers(1), 1200);
+
 
         // Auto refresh stats every 30 seconds
         setInterval(fetchStats, 30000);
