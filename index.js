@@ -248,6 +248,15 @@ const auth = (req, res, next) => {
     next();
 };
 
+// Optional Auth Middleware (for public/school actions like xorij)
+const optionalAuth = (req, res, next) => {
+    const token = req.headers['authorization'] || req.query.token;
+    if (token) {
+        req.user = verifyToken(token);
+    }
+    next();
+};
+
 // Admin: Get all registered Desktop app devices with live online/offline status
 app.get('/api/admin/desktop/devices', auth, (req, res) => {
     if (req.user.role !== 'superadmin' && req.user.role !== 'admin') return res.status(403).json({ error: 'Ruxsat yo\'q' });
@@ -1316,7 +1325,7 @@ const { notifyParents } = require('./src/services/notifications');
 
 // ==================== XORIJGA KETGANLAR WEB API ====================
 
-app.post('/api/xorij/add', auth, upload.fields([
+app.post('/api/xorij/add', optionalAuth, upload.fields([
     { name: 'doc_qaror', maxCount: 1 },
     { name: 'doc_buyruq', maxCount: 1 }
 ]), async (req, res) => {
@@ -1343,14 +1352,14 @@ app.post('/api/xorij/add', auth, upload.fields([
         const doc_buyruq = req.files && req.files['doc_buyruq'] ? req.files['doc_buyruq'][0].filename : null;
 
         const q = `INSERT INTO xorij_students (
-            student_name, dob, class_name, district, school, country, reason, companion, address, status, 
+            student_name, dob, class_name, district, school, country, date_left, reason, companion, address, status, 
             qonuniylik, q_sana, q_raqam, b_sana, b_raqam, doc_qaror, doc_buyruq, created_by, created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, NOW()) RETURNING id`;
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, NOW()) RETURNING id`;
         
         const values = [
-            student_name, dob, class_name, district, school, country, reason, companion, address, status,
+            student_name, dob, class_name, district, school, country, date_left, reason, companion, address, status,
             qonuniylik, q_sana, q_raqam, b_sana, b_raqam, doc_qaror, doc_buyruq,
-            cre_masul ? `${cre_masul} (${cre_tel})` : req.user.username
+            cre_masul ? `${cre_masul} (${cre_tel})` : (req.user ? (req.user.username || req.user.login) : 'Web Mas\'ul')
         ];
         
         const result = await sqlite.query(q, values);
@@ -1464,25 +1473,24 @@ app.post('/api/xorij/upload-excel', auth, upload.single('excel_file'), async (re
     }
 });
 
-app.post('/api/xorij/return', auth, upload.single('doc_return'), async (req, res) => {
+app.post('/api/xorij/return', optionalAuth, upload.single('doc_return'), async (req, res) => {
     try {
         const { id, ret_date, ret_district, ret_school, ret_class, ret_b_sana, ret_b_raqam } = req.body;
         const doc_return = req.file ? req.file.filename : null;
 
         const q = `UPDATE xorij_students SET 
-            is_returned = true, ret_date = $1, ret_district = $2, ret_school = $3, 
+            is_returned = true, return_date = CURRENT_DATE, ret_date = $1, ret_district = $2, ret_school = $3, 
             ret_class = $4, ret_b_sana = $5, ret_b_raqam = $6, doc_return = $7, updated_at = NOW() 
             WHERE id = $8`;
         
         await sqlite.query(q, [ret_date, ret_district, ret_school, ret_class, ret_b_sana, ret_b_raqam, doc_return, id]);
-        res.json({ success: true });
         res.json({ success: true });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
 });
 
-app.post('/api/xorij/update', auth, upload.fields([
+app.post('/api/xorij/update', optionalAuth, upload.fields([
     { name: 'doc_qaror', maxCount: 1 },
     { name: 'doc_buyruq', maxCount: 1 }
 ]), async (req, res) => {
@@ -1491,12 +1499,13 @@ app.post('/api/xorij/update', auth, upload.fields([
         
         let q = `UPDATE xorij_students SET 
             student_name = COALESCE($1, student_name), dob = COALESCE($2, dob), class_name = COALESCE($3, class_name), 
-            country = COALESCE($4, country), reason = COALESCE($5, reason), companion = COALESCE($6, companion), 
-            address = COALESCE($7, address), status = COALESCE($8, status), qonuniylik = COALESCE($9, qonuniylik), 
-            q_sana = COALESCE($10, q_sana), q_raqam = COALESCE($11, q_raqam), b_sana = COALESCE($12, b_sana), 
-            b_raqam = COALESCE($13, b_raqam), updated_by = $14, updated_at = NOW()`;
+            country = COALESCE($4, country), date_left = COALESCE($5, date_left), reason = COALESCE($6, reason), companion = COALESCE($7, companion), 
+            address = COALESCE($8, address), status = COALESCE($9, status), qonuniylik = COALESCE($10, qonuniylik), 
+            q_sana = COALESCE($11, q_sana), q_raqam = COALESCE($12, q_raqam), b_sana = COALESCE($13, b_sana), 
+            b_raqam = COALESCE($14, b_raqam), updated_by = $15, updated_at = NOW()`;
         
-        const params = [student_name, dob, class_name, country, reason, companion, address, status, qonuniylik, q_sana, q_raqam, b_sana, b_raqam, `${req.user.fio} (${req.user.login})`];
+        const updUserStr = upd_masul ? `${upd_masul} (${upd_tel})` : (req.user ? `${req.user.fio || ''} (${req.user.username || req.user.login})` : 'Web Mas\'ul');
+        const params = [student_name, dob, class_name, country, date_left, reason, companion, address, status, qonuniylik, q_sana, q_raqam, b_sana, b_raqam, updUserStr];
 
         if (req.files) {
             if (req.files['doc_qaror']) {
@@ -1520,26 +1529,34 @@ app.post('/api/xorij/update', auth, upload.fields([
 });
 
 
-app.get('/api/xorij', auth, async (req, res) => {
+app.get('/api/xorij', optionalAuth, async (req, res) => {
     try {
         let q = 'SELECT * FROM xorij_students';
         const params = [];
-        if (req.user.role === 'district' || req.user.role === 'inspektor_psixolog') {
+        if (req.user && (req.user.role === 'district' || req.user.role === 'inspektor_psixolog')) {
             q += ' WHERE district = $1';
             params.push(req.user.district);
-        } else if (req.user.role === 'school') {
+        } else if (req.user && req.user.role === 'school') {
             q += ' WHERE district = $1 AND school = $2';
             params.push(req.user.district, req.user.school);
         }
         q += ' ORDER BY id DESC';
         const result = await sqlite.query(q, params);
-        res.json(result.rows);
+        const rows = (result.rows || []).map(r => ({
+            ...r,
+            student_name: r.student_name || r.name || 'Noma\'lum',
+            class: r.class_name || r.class || '',
+            dob: r.dob || '',
+            date_left: r.date_left || (r.leave_date ? String(r.leave_date).slice(0, 10) : ''),
+            is_returned: r.is_returned === true || (r.return_date ? true : false)
+        }));
+        res.json(rows);
     } catch(e) {
         res.status(500).json({ error: e.message });
     }
 });
 
-app.get('/api/xorij/summary', auth, async (req, res) => {
+app.get('/api/xorij/summary', optionalAuth, async (req, res) => {
     try {
         const result = await sqlite.query('SELECT district, country, reason FROM xorij_students');
         const data = result.rows;
@@ -1572,7 +1589,7 @@ app.get('/api/xorij/summary', auth, async (req, res) => {
     }
 });
 
-app.get('/api/xorij/export', auth, async (req, res) => {
+app.get('/api/xorij/export', optionalAuth, async (req, res) => {
     try {
         const { exportXorijExcel } = require('./src/services/dataService');
         const filePath = await exportXorijExcel();
@@ -1988,6 +2005,106 @@ app.get('/api/web-user', async (req, res) => {
     }
 });
 
+// Admin: Webda Ro'yxatdan O'tgan Foydalanuvchilar (10 tadan varoqli / paginatsiya va qidiruv bilan)
+app.get('/api/admin/web-registered-users', auth, async (req, res) => {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Ruxsat yo\'q' });
+    }
+
+    try {
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.max(1, parseInt(req.query.limit) || 10);
+        const search = (req.query.search || '').trim().toLowerCase();
+        const district = (req.query.district || '').trim();
+
+        let whereClauses = [];
+        let params = [];
+
+        if (district) {
+            params.push(district);
+            whereClauses.push(`district = $${params.length}`);
+        }
+
+        if (search) {
+            params.push(`%${search}%`);
+            whereClauses.push(`(LOWER(fio) LIKE $${params.length} OR LOWER(school) LIKE $${params.length} OR phone LIKE $${params.length} OR api_key LIKE $${params.length})`);
+        }
+
+        const whereSql = whereClauses.length > 0 ? 'WHERE ' + whereClauses.join(' AND ') : '';
+
+        // Jami sonini hisoblash
+        let total = 0;
+        try {
+            const countRes = await sqlite.query(`SELECT COUNT(*) FROM web_registered_users ${whereSql}`, params);
+            total = parseInt(countRes.rows[0].count) || 0;
+        } catch (cErr) {
+            console.warn("Count web_registered_users error:", cErr.message);
+        }
+
+        // Varoqli ma'lumotlarni olish
+        const offset = (page - 1) * limit;
+        const queryParams = [...params, limit, offset];
+        let users = [];
+        try {
+            const dataRes = await sqlite.query(
+                `SELECT api_key, district, school, fio, phone, photo_url, created_at, last_active 
+                 FROM web_registered_users ${whereSql} 
+                 ORDER BY created_at DESC 
+                 LIMIT $${queryParams.length - 1} OFFSET $${queryParams.length}`,
+                queryParams
+            );
+            users = dataRes.rows || [];
+        } catch (dErr) {
+            console.warn("Fetch web_registered_users error:", dErr.message);
+        }
+
+        // Zaxira: Agar bazada topilmasa JSON fayldan olish
+        if (users.length === 0 && !district && !search) {
+            const webUsersFile = path.join(__dirname, 'src', 'database', 'web_users.json');
+            if (fs.existsSync(webUsersFile)) {
+                try {
+                    const jsonUsers = Object.values(JSON.parse(fs.readFileSync(webUsersFile, 'utf8')));
+                    total = jsonUsers.length;
+                    users = jsonUsers.slice(offset, offset + limit);
+                } catch(e) {}
+            }
+        }
+
+        res.json({
+            success: true,
+            total,
+            page,
+            limit,
+            total_pages: Math.ceil(total / limit) || 1,
+            users
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Admin: Webda ro'yxatdan o'tgan foydalanuvchini o'chirish
+app.delete('/api/admin/web-registered-users/:key', auth, async (req, res) => {
+    if (req.user.role !== 'superadmin' && req.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Ruxsat yo\'q' });
+    }
+    const key = req.params.key;
+    try {
+        await sqlite.query('DELETE FROM web_registered_users WHERE api_key = $1', [key]);
+        const webUsersFile = path.join(__dirname, 'src', 'database', 'web_users.json');
+        if (fs.existsSync(webUsersFile)) {
+            try {
+                const jsonUsers = JSON.parse(fs.readFileSync(webUsersFile, 'utf8'));
+                delete jsonUsers[key];
+                fs.writeFileSync(webUsersFile, JSON.stringify(jsonUsers, null, 2));
+            } catch(e) {}
+        }
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // --- ADMIN SETTINGS & BROADCAST ---
 
 // Admin: Get settings
@@ -2087,20 +2204,36 @@ app.post('/api/admin/broadcast', auth, (req, res, next) => {
     if (db.settings.broadcasts.length > 20) db.settings.broadcasts = db.settings.broadcasts.slice(0, 20);
     db.saveSettings().catch(() => {});
 
-    // Filter recipients from users_db
-    const users = Object.entries(db.users_db || {});
+    // Filter recipients from PostgreSQL tg_users (with fallback to db.users_db)
     let targetUids = [];
-
-    if (group === 'inspectors') {
-        targetUids = users.filter(([uid, u]) => u.district || u.role === 'inspektor_psixolog').map(([uid]) => uid);
-    } else if (group === 'parents') {
-        targetUids = users.filter(([uid, u]) => u.role === 'parent').map(([uid]) => uid);
-    } else {
-        targetUids = users.map(([uid]) => uid);
+    try {
+        const pgRes = await sqlite.query("SELECT telegram_id, role, district FROM tg_users");
+        const rows = pgRes.rows || [];
+        if (group === 'inspectors') {
+            targetUids = rows.filter(u => u.district || u.role === 'inspektor_psixolog').map(u => u.telegram_id);
+        } else if (group === 'parents') {
+            targetUids = rows.filter(u => u.role === 'parent').map(u => u.telegram_id);
+        } else {
+            targetUids = rows.map(u => u.telegram_id);
+        }
+    } catch (dbErr) {
+        console.warn("[BROADCAST] PG query fallback to users_db:", dbErr.message);
     }
 
-    // UNIQUE and VALID IDs
-    targetUids = [...new Set(targetUids)].filter(id => id && !isNaN(id));
+    // Fallback if PG empty or errored
+    if (!targetUids.length) {
+        const users = Object.entries(db.users_db || {});
+        if (group === 'inspectors') {
+            targetUids = users.filter(([uid, u]) => u.district || u.role === 'inspektor_psixolog').map(([uid]) => uid);
+        } else if (group === 'parents') {
+            targetUids = users.filter(([uid, u]) => u.role === 'parent').map(([uid]) => uid);
+        } else {
+            targetUids = users.map(([uid]) => uid);
+        }
+    }
+
+    // UNIQUE and VALID numeric Telegram IDs (cleaning 'parent_' prefix)
+    targetUids = [...new Set(targetUids.map(id => String(id).replace(/^parent_/, '').trim()))].filter(id => id && !isNaN(id));
 
     res.json({ success: true, estimated_users: targetUids.length });
 
@@ -2160,6 +2293,10 @@ app.post('/api/admin/broadcast', auth, (req, res, next) => {
                         console.warn(`[BROADCAST 429] Rate limit hit. Waiting ${waitSeconds}s before retry...`);
                         await new Promise(r => setTimeout(r, (waitSeconds + 1) * 1000));
                         continue;
+                    }
+                    if (e.response && e.response.error_code === 401) {
+                        console.error("[BROADCAST FATAL] Bot Token yaroqsiz (401 Unauthorized)! Telegram xabarni qabul qilmadi. Iltimos BotFather'dan yangi token oling.");
+                        return;
                     }
                     // Blocked, deactivated or invalid chat
                     blocked++;
