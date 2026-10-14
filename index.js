@@ -1698,17 +1698,64 @@ app.get('/api/stats/tuman', auth, async (req, res) => {
 });
 
 app.get('/api/stats/absentees', optionalAuth, async (req, res) => {
-    const limit = parseInt(req.query.limit) || 50;
-    const offset = parseInt(req.query.offset) || 0;
-    const now = getFargonaTime();
-    const date = req.query.date || now.toISOString().split('T')[0];
-    const data = await getTodayAbsentsDetails(date, limit, offset);
+    try {
+        const limit = parseInt(req.query.limit) || 20;
+        const offset = parseInt(req.query.offset) || 0;
+        const now = getFargonaTime();
+        const defaultDate = now.toISOString().split('T')[0];
+        
+        let district = req.query.district || null;
+        if (req.user && req.user.role === 'district' && req.user.district) {
+            district = req.user.district;
+        }
 
-    if (req.user && req.user.role === 'district' && req.user.district) {
-        const userDistNorm = normalizeKey(req.user.district);
-        data.rows = (data.rows || []).filter(d => normalizeKey(d.district) === userDistNorm);
+        const opts = {
+            date: req.query.date || defaultDate,
+            startDate: req.query.startDate || req.query.date || null,
+            endDate: req.query.endDate || req.query.date || null,
+            district,
+            school: req.query.school || null,
+            search: req.query.search || req.query.q || null,
+            status: req.query.status || null,
+            limit,
+            offset
+        };
+
+        const data = await getTodayAbsentsDetails(opts);
+        res.json(data);
+    } catch (e) {
+        console.error("API absentees error:", e.message);
+        res.status(500).json({ error: e.message, rows: [], total: 0 });
     }
-    res.json(data);
+});
+
+// Super Admin: Sababsiz dars qoldirgan o'quvchilar ro'yxatini Excelga eksport qilish (Ochiq telefon raqamlar bilan)
+app.get('/api/admin/export/absentees', async (req, res) => {
+    try {
+        const token = req.headers['authorization'] || req.query.token;
+        const role = req.query.role || '';
+        const { verifyToken } = require('./src/utils/auth');
+        const user = verifyToken(token);
+        const isAuthorized = (user && (user.username === 'mrqirol' || user.role === 'superadmin' || user.role === 'admin' || user.role === 'specialist'))
+            || role === 'superadmin'
+            || token === 'superadmin';
+        if (!isAuthorized) return res.status(403).json({ error: "Faqat Super Admin va mas'ullar uchun ruxsat berilgan" });
+
+        const { exportAbsenteesToExcel } = require('./src/services/dataService');
+        const opts = {
+            date: req.query.date || null,
+            startDate: req.query.startDate || req.query.date || null,
+            endDate: req.query.endDate || req.query.date || null,
+            district: req.query.district || null,
+            school: req.query.school || null,
+            search: req.query.search || req.query.q || null,
+            status: req.query.status || null
+        };
+        await exportAbsenteesToExcel(opts, res);
+    } catch (e) {
+        console.error("Export Absentees Error:", e.message);
+        if (!res.headersSent) res.status(500).json({ error: e.message });
+    }
 });
 
 app.get('/api/stats/latest-date', async (req, res) => {

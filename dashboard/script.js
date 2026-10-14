@@ -2252,16 +2252,30 @@ const DISTRICTS_LIST = [
     "Furqat tumani", "O'zbekiston tumani", "Quva tumani"
 ];
 
+function cleanDistStr(str) {
+    if (!str) return '';
+    return str.toString().trim().replace(/[‘`’ʻʼ]/g, "'").toLowerCase();
+}
+
 function openDistrictStats(dist) {
     const selector = document.getElementById('tumanSelect');
     if (selector) {
-        let exists = Array.from(selector.options).some(o => o.value === dist);
-        if (!exists) {
-            const opt = document.createElement('option');
-            opt.value = opt.textContent = dist;
-            selector.appendChild(opt);
+        const norm = cleanDistStr(dist);
+        let found = false;
+        for (let i = 0; i < selector.options.length; i++) {
+            if (cleanDistStr(selector.options[i].value) === norm) {
+                selector.selectedIndex = i;
+                found = true;
+                break;
+            }
         }
-        selector.value = dist;
+        if (!found) {
+            // Check if standard list has it before adding
+            const matchedStd = DISTRICTS_LIST.find(d => cleanDistStr(d) === norm);
+            if (matchedStd) {
+                selector.value = matchedStd;
+            }
+        }
     }
     showTab('tuman');
     setTimeout(() => loadTumanData(1), 50);
@@ -2682,12 +2696,17 @@ async function loadTumanData(page = 1) {
     const tumanSelect = document.getElementById('tumanSelect');
     if (!tumanSelect) return;
 
-    if (tumanSelect.options.length === 0) {
-        DISTRICTS_LIST.forEach(d => {
-            const opt = document.createElement('option');
-            opt.value = opt.textContent = d;
-            tumanSelect.appendChild(opt);
-        });
+    if (tumanSelect.options.length !== DISTRICTS_LIST.length && userRole !== 'district') {
+        const prev = tumanSelect.value;
+        tumanSelect.innerHTML = DISTRICTS_LIST.map(d => `<option value="${d}">${d}</option>`).join('');
+        if (prev) {
+            for (let i = 0; i < tumanSelect.options.length; i++) {
+                if (cleanDistStr(tumanSelect.options[i].value) === cleanDistStr(prev)) {
+                    tumanSelect.selectedIndex = i;
+                    break;
+                }
+            }
+        }
     }
 
     const userDist = localStorage.getItem('dashboard_district');
@@ -2783,53 +2802,74 @@ async function loadTumanData(page = 1) {
 
 async function loadAbsentDetails(page = 1) {
     absentPage = page;
-    const dateInput = document.getElementById('absentDate');
-    const date = dateInput ? (dateInput.value || new Date().toISOString().split('T')[0]) : new Date().toISOString().split('T')[0];
-    if (dateInput && !dateInput.value) dateInput.value = date;
+    const sDate = document.getElementById('absentStartDate')?.value || document.getElementById('absentDate')?.value || new Date().toISOString().split('T')[0];
+    const eDate = document.getElementById('absentEndDate')?.value || sDate;
+    const district = document.getElementById('absentDistrictFilter')?.value || '';
+    const school = document.getElementById('absentSchoolFilter')?.value || '';
+    const status = document.getElementById('absentStatusFilter')?.value || '';
+    const search = document.getElementById('absentSearchInput')?.value?.trim() || '';
 
-    const offset = (page - 1) * PAGE_SIZE;
+    const offset = (page - 1) * 20;
+    const params = new URLSearchParams({
+        startDate: sDate,
+        endDate: eDate,
+        limit: 20,
+        offset: offset
+    });
+    if (district && district !== 'Barchasi') params.append('district', district);
+    if (school && school !== 'Barchasi') params.append('school', school);
+    if (status && status !== 'Barchasi') params.append('status', status);
+    if (search) params.append('search', search);
+
     try {
-        const res = await fetch(`${API_BASE}/stats/absentees?date=${date}&limit=${PAGE_SIZE}&offset=${offset}`, { headers: getAuthHeaders() });
+        const res = await fetch(`${API_BASE}/stats/absentees?${params.toString()}`, { headers: getAuthHeaders() });
         const data = await res.json();
         const tbody = document.querySelector('#absentTable tbody');
         if (!tbody) return;
         tbody.innerHTML = '';
-        const role = localStorage.getItem('dashboard_role');
-        const isSuper = role === 'superadmin';
 
         const rows = data.rows || [];
         const total = data.total || 0;
 
         if (Array.isArray(rows)) {
-            rows.forEach(row => {
+            rows.forEach((row, idx) => {
+                const rowNum = (page - 1) * 20 + idx + 1;
                 const phoneStr = (row.parent_phone || '').toString();
-                const maskedPhone = isSuper ? phoneStr : (phoneStr.length > 7 ? phoneStr.substring(0, 6) + '***' + phoneStr.substring(phoneStr.length - 2) : '***');
-                const name = row.name || '-';
-                const maskedName = isSuper ? name : name.split(' ').map((n, i) => i === 0 ? n : '***').join(' ');
-                const parent_name = row.parent_name || '-';
-                const maskedParent = isSuper ? parent_name : parent_name.split(' ').map((n, i) => i === 0 ? n : '***').join(' ');
-                const address = row.address || '-';
-                const maskedAddress = isSuper ? address : '***';
+                const maskedPhone = phoneStr.length > 7 
+                    ? phoneStr.substring(0, 6) + ' ** *** ** ' + phoneStr.substring(phoneStr.length - 2)
+                    : (phoneStr ? phoneStr.substring(0, 3) + ' ***' : '-');
+                const streak = parseInt(row.streak) || 1;
+                const isMuntazam = streak >= 3;
 
                 const tr = document.createElement('tr');
+                if (isMuntazam) {
+                    tr.style.cssText = 'background: rgba(239, 68, 68, 0.18) !important; border-left: 4px solid #ef4444;';
+                }
+
+                const statusBadge = isMuntazam 
+                    ? `<span style="background:#ef4444; color:#fff; padding:3px 9px; border-radius:6px; font-weight:700; font-size:0.75rem; display:inline-flex; align-items:center; gap:4px;"><i class="fas fa-exclamation-triangle"></i> Muntazam (${streak} kun)</span>`
+                    : `<span style="background:rgba(245, 158, 11, 0.2); color:#fbbf24; border:1px solid rgba(245, 158, 11, 0.4); padding:3px 9px; border-radius:6px; font-size:0.75rem; font-weight:600;">Odatiy (${streak} kun)</span>`;
+
                 tr.innerHTML = `
-                    <td>${row.district}</td>
-                    <td><b>${row.school}</b></td>
-                    <td>${row.class}</td>
-                    <td><b>${maskedName}</b></td>
-                    <td>${maskedAddress}</td>
-                    <td style="font-size: 0.85rem">${maskedParent}</td>
-                    <td>${isSuper ? `<a href="tel:${row.parent_phone}">${row.parent_phone}</a>` : `<span style="color:#818cf8">${maskedPhone}</span>`}</td>
-                    <td style="font-size: 0.85rem">${row.inspector || '-'}</td>
-                    <td style="font-size: 0.85rem">
-                        <b>${row.submitter_fio || '-'}</b><br>
-                        <a href="tel:${row.submitter_phone}" style="color:var(--primary); text-decoration:none;">${row.submitter_phone || ''}</a>
+                    <td style="text-align:center; font-weight:700; color:#94a3b8;">${rowNum}</td>
+                    <td style="text-align:center; font-size:0.82rem; color:#cbd5e1; white-space:nowrap;">${row.date || '-'}</td>
+                    <td><b>${row.district || '-'}</b></td>
+                    <td><b>${row.school || '-'}</b></td>
+                    <td style="text-align:center; font-weight:600;">${row.class || '-'}</td>
+                    <td><b style="color:#f8fafc;">${row.name || '-'}</b></td>
+                    <td style="font-size:0.82rem; color:#cbd5e1;">${row.address || '-'}</td>
+                    <td style="font-size:0.85rem;">${row.parent_name || '-'}</td>
+                    <td style="font-family:monospace; font-weight:600; color:#818cf8; white-space:nowrap;">${maskedPhone}</td>
+                    <td style="text-align:center;">${statusBadge}</td>
+                    <td style="font-size:0.82rem; color:#cbd5e1;">
+                        ${row.submitter_fio || '-'}
+                        ${row.submitter_phone ? `<br><small style="color:#94a3b8;">${row.submitter_phone}</small>` : ''}
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
         }
-        renderPagination('absentPagination', total, page, PAGE_SIZE, 'loadAbsentDetails');
+        renderPagination('absentPagination', total, page, 20, 'loadAbsentDetails');
     } catch (e) { console.error(e); }
 }
 
@@ -2860,9 +2900,8 @@ async function loadRecentActivity(page = 1) {
 
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px"><i class="fas fa-spinner fa-spin"></i> Yuklanmoqda...</td></tr>';
     try {
-        const data = await apiFetch(`/api/stats/recent?limit=${monitorLimit}&offset=${offset}`);
-        const rows = data.rows || [];
-        const total = data.total || 0;
+        const rows = Array.isArray(data) ? data : (data && data.rows ? data.rows : []);
+        const total = (data && data.total) || rows.length;
 
         tbody.innerHTML = '';
         if (rows.length === 0) {

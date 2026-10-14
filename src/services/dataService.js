@@ -534,46 +534,287 @@ async function getTumanSvod(district, date, limit = 50, offset = 0) {
     } catch (e) { console.error("Tuman Svod Error:", e); return { rows: [], total: 0 }; }
 }
 
-async function getTodayAbsentsDetails(date, limit = 50, offset = 0) {
+async function getTodayAbsentsDetails(dateOrOpts, limitParam = 20, offsetParam = 0) {
+    let opts = {};
+    if (typeof dateOrOpts === 'object' && dateOrOpts !== null) {
+        opts = dateOrOpts;
+    } else {
+        opts = {
+            date: dateOrOpts,
+            limit: limitParam,
+            offset: offsetParam
+        };
+    }
+
+    const limit = parseInt(opts.limit) || 20;
+    const offset = parseInt(opts.offset) || 0;
+    const startDate = opts.startDate || opts.date || null;
+    const endDate = opts.endDate || opts.date || null;
+    const district = opts.district && opts.district !== 'Barchasi' ? opts.district.trim() : null;
+    const school = opts.school && opts.school !== 'Barchasi' ? opts.school.trim() : null;
+    const search = opts.search ? opts.search.trim() : null;
+    const statusFilter = opts.status ? opts.status.trim().toLowerCase() : null; // 'muntazam' | 'odatiy'
+
+    let whereClauses = [];
+    let params = [];
+
+    if (startDate && endDate) {
+        if (startDate === endDate) {
+            params.push(startDate);
+            whereClauses.push(`a.date = $${params.length}`);
+        } else {
+            params.push(startDate);
+            whereClauses.push(`a.date >= $${params.length}`);
+            params.push(endDate);
+            whereClauses.push(`a.date <= $${params.length}`);
+        }
+    } else if (startDate) {
+        params.push(startDate);
+        whereClauses.push(`a.date = $${params.length}`);
+    }
+
+    if (district) {
+        params.push(district);
+        whereClauses.push(`(LOWER(a.district) = LOWER($${params.length}) OR a.district ILIKE '%' || $${params.length} || '%')`);
+    }
+
+    if (school) {
+        params.push(school);
+        whereClauses.push(`a.school = $${params.length}`);
+    }
+
+    if (search) {
+        params.push(`%${search}%`);
+        const pIdx = params.length;
+        whereClauses.push(`(s.name ILIKE $${pIdx} OR s.class ILIKE $${pIdx} OR s.address ILIKE $${pIdx} OR s.parent_name ILIKE $${pIdx} OR s.parent_phone ILIKE $${pIdx} OR a.school ILIKE $${pIdx} OR a.district ILIKE $${pIdx})`);
+    }
+
+    const whereSql = whereClauses.length > 0 ? `WHERE ` + whereClauses.join(' AND ') : '';
+
     if (!process.env.DATABASE_URL) {
         try {
             const sqliteDb = require('../database/sqlite');
-            const totalRow = sqliteDb.prepare("SELECT count(*) as count FROM absent_students s JOIN attendance a ON s.attendance_id = a.id WHERE a.date = ?").get(date);
+            let q = `SELECT a.date, a.district, a.school, s.class, s.name, s.address, s.parent_name, s.parent_phone, a.inspector, a.fio as submitter_fio, a.phone as submitter_phone 
+                     FROM absent_students s 
+                     JOIN attendance a ON s.attendance_id = a.id `;
+            let countQ = `SELECT count(*) as count FROM absent_students s JOIN attendance a ON s.attendance_id = a.id `;
+            let sqlClauses = [];
+            let sqlParams = [];
+            if (startDate && endDate) {
+                if (startDate === endDate) {
+                    sqlClauses.push("a.date = ?");
+                    sqlParams.push(startDate);
+                } else {
+                    sqlClauses.push("a.date >= ? AND a.date <= ?");
+                    sqlParams.push(startDate, endDate);
+                }
+            } else if (startDate) {
+                sqlClauses.push("a.date = ?");
+                sqlParams.push(startDate);
+            }
+            if (district) {
+                sqlClauses.push("a.district LIKE ?");
+                sqlParams.push(`%${district}%`);
+            }
+            if (school) {
+                sqlClauses.push("a.school = ?");
+                sqlParams.push(school);
+            }
+            if (search) {
+                sqlClauses.push("(s.name LIKE ? OR s.class LIKE ? OR s.address LIKE ? OR s.parent_name LIKE ? OR a.school LIKE ?)");
+                sqlParams.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+            }
+            const whereStr = sqlClauses.length ? "WHERE " + sqlClauses.join(" AND ") : "";
+            const totalRow = sqliteDb.prepare(countQ + whereStr).get(...sqlParams);
             const total = totalRow ? totalRow.count : 0;
-            const rows = sqliteDb.prepare("SELECT a.date, a.district, a.school, s.class, s.name, s.address, s.parent_name, s.parent_phone, a.inspector, a.fio as submitter_fio, a.phone as submitter_phone FROM absent_students s JOIN attendance a ON s.attendance_id = a.id WHERE a.date = ? ORDER BY a.district, a.school, s.class LIMIT ? OFFSET ?").all(date, limit, offset);
+            const rows = sqliteDb.prepare(q + whereStr + " ORDER BY a.date DESC, a.district, a.school, s.class LIMIT ? OFFSET ?").all(...sqlParams, limit, offset);
             return { rows: rows.map(r => ({ ...r, streak: 1, status: 'Odatiy' })), total };
-        } catch (e) { return { rows: [], total: 0 }; }
+        } catch (e) {
+            console.error("SQLite absents error:", e.message);
+            return { rows: [], total: 0 };
+        }
     }
+
     try {
-        const countRes = await db.query(`SELECT count(*) FROM absent_students s JOIN attendance a ON s.attendance_id = a.id WHERE a.date = $1`, [date]);
-        const total = parseInt(countRes.rows[0].count);
-        const res = await db.query(`SELECT a.date, a.district, a.school, s.class, s.name, s.address, s.parent_name, s.parent_phone, a.inspector, a.fio as submitter_fio, a.phone as submitter_phone FROM absent_students s JOIN attendance a ON s.attendance_id = a.id WHERE a.date = $1 ORDER BY a.district, a.school, s.class LIMIT $2 OFFSET $3`, [date, limit, offset]);
-        
+        const countRes = await db.query(`SELECT count(*) FROM absent_students s JOIN attendance a ON s.attendance_id = a.id ${whereSql}`, params);
+        const total = parseInt(countRes.rows[0].count) || 0;
+
+        const dataParams = [...params, limit, offset];
+        const res = await db.query(
+            `SELECT a.date, a.district, a.school, s.class, s.name, s.address, s.parent_name, s.parent_phone, a.inspector, a.fio as submitter_fio, a.phone as submitter_phone 
+             FROM absent_students s 
+             JOIN attendance a ON s.attendance_id = a.id 
+             ${whereSql} 
+             ORDER BY a.date DESC, a.district, a.school, s.class 
+             LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}`,
+            dataParams
+        );
+
         const names = res.rows.map(r => r.name);
         const streakMap = {};
         if (names.length > 0) {
             try {
+                const maxDate = endDate || startDate || new Date().toISOString().split('T')[0];
                 const sRes = await db.query(
                     `SELECT s.name, a.district, a.school, count(DISTINCT a.date) as streak
                      FROM absent_students s 
                      JOIN attendance a ON s.attendance_id = a.id 
                      WHERE s.name = ANY($1) AND a.date <= $2
                      GROUP BY s.name, a.district, a.school`,
-                    [names, date]
+                    [names, maxDate]
                 );
                 sRes.rows.forEach(sr => {
                     streakMap[`${sr.name}|${sr.district}|${sr.school}`] = parseInt(sr.streak) || 1;
                 });
-            } catch(stErr) {
-                // Non-fatal, fallback to 1
+            } catch(stErr) { }
+        }
+
+        let finalRows = res.rows.map(r => {
+            const streak = streakMap[`${r.name}|${r.district}|${r.school}`] || 1;
+            return {
+                ...r,
+                streak,
+                status: streak >= 3 ? "Muntazam" : "Odatiy"
+            };
+        });
+
+        if (statusFilter === 'muntazam') {
+            finalRows = finalRows.filter(r => r.streak >= 3);
+        } else if (statusFilter === 'odatiy') {
+            finalRows = finalRows.filter(r => r.streak < 3);
+        }
+
+        return { rows: finalRows, total };
+    } catch (e) {
+        console.error("getTodayAbsentsDetails error:", e.message);
+        return { rows: [], total: 0 };
+    }
+}
+
+async function exportAbsenteesToExcel(options = {}, res) {
+    const exportOpts = { ...options, limit: 10000, offset: 0 };
+    const result = await getTodayAbsentsDetails(exportOpts);
+    const rows = result.rows || [];
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = "Ferghanaregdavomat";
+    workbook.created = new Date();
+
+    const sheet = workbook.addWorksheet("Sababsiz O'quvchilar", {
+        views: [{ showGridLines: true }],
+        pageSetup: { orientation: 'landscape', paperSize: 9 }
+    });
+
+    // 1. Header Banner
+    sheet.mergeCells('A1:L1');
+    const titleCell1 = sheet.getCell('A1');
+    titleCell1.value = "FARG'ONA VILOYATI MAKTABGACHA VA MAKTAB TA'LIMI BOSHQARMASI";
+    titleCell1.font = { bold: true, size: 13, color: { argb: 'FFFFFFFF' } };
+    titleCell1.alignment = { horizontal: 'center', vertical: 'middle' };
+    titleCell1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+    sheet.getRow(1).height = 30;
+
+    sheet.mergeCells('A2:L2');
+    const titleCell2 = sheet.getCell('A2');
+    const dateRangeStr = options.startDate && options.endDate && options.startDate !== options.endDate 
+        ? `${options.startDate} dan ${options.endDate} gacha` 
+        : (options.date || options.startDate || 'Barcha sanalar');
+    titleCell2.value = `SABABSIZ DARS QOLDIRGAN O'QUVCHILAR RO'YXATI (${dateRangeStr.toUpperCase()})`;
+    titleCell2.font = { bold: true, size: 11, color: { argb: 'FFFFD700' } };
+    titleCell2.alignment = { horizontal: 'center', vertical: 'middle' };
+    titleCell2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F172A' } };
+    sheet.getRow(2).height = 24;
+
+    sheet.mergeCells('A3:L3');
+    const metaCell = sheet.getCell('A3');
+    metaCell.value = `Hisobot shakllantirilgan vaqt: ${new Date().toLocaleString('uz-UZ')} • Jami yozuvlar: ${rows.length} ta • Super Admin versiyasi (Ota-onalar telefoni ochiq)`;
+    metaCell.font = { italic: true, size: 9, color: { argb: 'FF94A3B8' } };
+    metaCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    metaCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F172A' } };
+    sheet.getRow(3).height = 20;
+
+    // Table Column Headers
+    const headers = [
+        { header: '№', key: 'num', width: 6 },
+        { header: 'Sana', key: 'date', width: 13 },
+        { header: 'Tuman / Shahar', key: 'district', width: 20 },
+        { header: 'Maktab', key: 'school', width: 18 },
+        { header: 'Sinf', key: 'class', width: 10 },
+        { header: "O'quvchi F.I.SH", key: 'name', width: 28 },
+        { header: 'Yashash manzili', key: 'address', width: 28 },
+        { header: 'Ota-onasi F.I.SH', key: 'parent_name', width: 25 },
+        { header: 'Ota-onasi telefoni (Asl)', key: 'parent_phone', width: 22 },
+        { header: 'Qoldirgan kunlar (Streak)', key: 'streak', width: 16 },
+        { header: 'Holati', key: 'status', width: 14 },
+        { header: "Kiritgan mas'ul (O'rinbosar)", key: 'submitter', width: 24 }
+    ];
+
+    const headerRow = sheet.getRow(5);
+    headers.forEach((h, idx) => {
+        const cell = headerRow.getCell(idx + 1);
+        cell.value = h.header;
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
+        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } };
+        cell.border = {
+            top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+            bottom: { style: 'medium', color: { argb: 'FF0284C7' } },
+            left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+            right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+        };
+        sheet.getColumn(idx + 1).width = h.width;
+    });
+    headerRow.height = 28;
+
+    let rowIndex = 6;
+    rows.forEach((r, idx) => {
+        const row = sheet.getRow(rowIndex);
+        const isMuntazam = (r.streak || 1) >= 3;
+
+        row.getCell(1).value = idx + 1;
+        row.getCell(2).value = r.date || '-';
+        row.getCell(3).value = r.district || '-';
+        row.getCell(4).value = r.school || '-';
+        row.getCell(5).value = r.class || '-';
+        row.getCell(6).value = r.name || '-';
+        row.getCell(7).value = r.address || '-';
+        row.getCell(8).value = r.parent_name || '-';
+        row.getCell(9).value = r.parent_phone || '-';
+        row.getCell(10).value = `${r.streak || 1} kun`;
+        row.getCell(11).value = isMuntazam ? "Muntazam (3+ kun)" : "Odatiy (1-2 kun)";
+        row.getCell(12).value = r.submitter_fio ? `${r.submitter_fio} (${r.submitter_phone || ''})` : '-';
+
+        const rowBg = isMuntazam ? 'FFFEE2E2' : (idx % 2 === 0 ? 'FFFFFFFF' : 'FFF8FAFC');
+
+        for (let col = 1; col <= 12; col++) {
+            const c = row.getCell(col);
+            c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowBg } };
+            c.border = {
+                top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+            };
+            c.font = {
+                size: 9.5,
+                color: isMuntazam && (col === 10 || col === 11) ? { argb: 'FFB91C1C' } : { argb: 'FF1E293B' },
+                bold: isMuntazam && (col === 6 || col === 10 || col === 11)
+            };
+            if (col === 1 || col === 2 || col === 5 || col === 9 || col === 10 || col === 11) {
+                c.alignment = { horizontal: 'center', vertical: 'middle' };
+            } else {
+                c.alignment = { horizontal: 'left', vertical: 'middle' };
             }
         }
-        const finalRows = res.rows.map(r => {
-            const streak = streakMap[`${r.name}|${r.district}|${r.school}`] || 1;
-            return { ...r, streak, status: streak >= 3 ? "Muntazam" : "Odatiy" };
-        });
-        return { rows: finalRows, total };
-    } catch (e) { console.error("getTodayAbsentsDetails error:", e.message); return { rows: [], total: 0 }; }
+        row.height = 22;
+        rowIndex++;
+    });
+
+    const filename = `Sababsizlar_${(options.date || options.startDate || new Date().toISOString().split('T')[0])}.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    await workbook.xlsx.write(res);
+    res.end();
 }
 
 async function getTrendStats(district = null) {
@@ -1039,5 +1280,5 @@ async function exportSubscribersToExcel(streamRes = null) {
 module.exports = {
     saveAttendance, exportToExcel, exportDistrictExcel, exportWeeklyExcel, exportMonthlyExcel,
     getViloyatSvod, getTumanSvod, getTodayAbsentsDetails, getRecentActivity, getTrendStats, checkIfExists,
-    exportXorijExcel, exportSubscribersToExcel
+    exportXorijExcel, exportSubscribersToExcel, exportAbsenteesToExcel
 };

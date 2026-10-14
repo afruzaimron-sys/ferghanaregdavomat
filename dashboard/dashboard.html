@@ -523,6 +523,14 @@
             border-right: 1px solid #e2e8f0 !important;
         }
 
+        tr.muntazam-row td {
+            background-color: rgba(239, 68, 68, 0.18) !important;
+        }
+        html.light-mode tr.muntazam-row td {
+            background-color: #fee2e2 !important;
+            color: #991b1b !important;
+        }
+
         html.light-mode #viloyatTable thead tr:first-child th:first-child {
             background: #e2e8f0 !important;
             color: #0f172a !important;
@@ -1614,34 +1622,145 @@ body, body.page-dashboard {
                 style="margin-top:20px; display:flex; justify-content:center; gap:10px;"></div>
         </div>
 
-        <!-- 3. DETAILED ABSENTS -->
+        <!-- 3. DETAILED ABSENTS (SABABSIZLAR NAZORATI) -->
         <div id="studentsView" class="report-view">
-            <div class="controls">
-                <div class="filter-group">
-                    <label data-i18n="label_date">Sana</label>
-                    <input type="date" id="absentDate" onchange="loadAbsentDetails()">
+            <!-- Header Title Banner -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
+                <div>
+                    <h3 style="margin: 0; font-size: 1.4rem; color: #fff; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-user-times" style="color: #ef4444;"></i> Sababsiz Dars Qoldirgan O'quvchilar Nazorati
+                    </h3>
+                    <p style="margin: 4px 0 0; color: #94a3b8; font-size: 0.88rem;">
+                        Farg'ona viloyati bo'yicha sababsiz dars qoldiruvchilar va surunkali (muntazam 3+ kun) kelmayotgan o'quvchilar tahlili
+                    </p>
+                </div>
+                <!-- Super Admin Excel export button -->
+                <button type="button" onclick="exportAbsenteesExcel()" id="absenteesExcelBtn" class="btn" style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 10px 20px; border-radius: 12px; font-size: 0.9rem; font-weight: 700; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35);">
+                    <i class="fas fa-file-excel" style="font-size: 1.1rem;"></i> <span>Excel yuklab olish</span>
+                </button>
+            </div>
+
+            <!-- Controls & Multi-Filter Bar -->
+            <div class="controls" style="background: rgba(30, 41, 59, 0.65); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 18px; margin-bottom: 22px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; align-items: flex-end;">
+                <!-- 1. Boshlanish sanasi -->
+                <div class="filter-group" style="display: flex; flex-direction: column; gap: 6px;">
+                    <label style="font-size: 0.8rem; color: #94a3b8; font-weight: 600;">Boshlanish sanasi</label>
+                    <input type="date" id="absentStartDate" onchange="loadAbsentDetails(1)" style="padding: 9px 12px; border-radius: 8px; background: #0f172a; border: 1px solid rgba(255,255,255,0.15); color: #fff; font-size: 0.88rem; width: 100%;">
+                </div>
+
+                <!-- 2. Tugash sanasi -->
+                <div class="filter-group" style="display: flex; flex-direction: column; gap: 6px;">
+                    <label style="font-size: 0.8rem; color: #94a3b8; font-weight: 600;">Tugash sanasi</label>
+                    <input type="date" id="absentEndDate" onchange="loadAbsentDetails(1)" style="padding: 9px 12px; border-radius: 8px; background: #0f172a; border: 1px solid rgba(255,255,255,0.15); color: #fff; font-size: 0.88rem; width: 100%;">
+                </div>
+
+                <!-- 3. Hudud (Tuman / Shahar) -->
+                <div class="filter-group" style="display: flex; flex-direction: column; gap: 6px;">
+                    <label style="font-size: 0.8rem; color: #94a3b8; font-weight: 600;">Hudud (Tuman/Shahar)</label>
+                    <select id="absentDistrictFilter" onchange="onAbsentDistrictChange()" style="padding: 9px 12px; border-radius: 8px; background: #0f172a; border: 1px solid rgba(255,255,255,0.15); color: #fff; font-size: 0.88rem; width: 100%;">
+                        <option value="Barchasi">Barcha hududlar</option>
+                        <option value="Farg'ona shahri">Farg'ona shahri</option>
+                        <option value="Marg'ilon shahri">Marg'ilon shahri</option>
+                        <option value="Qo'qon shahri">Qo'qon shahri</option>
+                        <option value="Quvasoy shahri">Quvasoy shahri</option>
+                        <option value="Bag'dod tumani">Bag'dod tumani</option>
+                        <option value="Beshariq tumani">Beshariq tumani</option>
+                        <option value="Buvayda tumani">Buvayda tumani</option>
+                        <option value="Dang'ara tumani">Dang'ara tumani</option>
+                        <option value="Yozyovon tumani">Yozyovon tumani</option>
+                        <option value="Oltiariq tumani">Oltiariq tumani</option>
+                        <option value="Qo'shtepa tumani">Qo'shtepa tumani</option>
+                        <option value="Rishton tumani">Rishton tumani</option>
+                        <option value="So'x tumani">So'x tumani</option>
+                        <option value="Toshloq tumani">Toshloq tumani</option>
+                        <option value="Uchko'prik tumani">Uchko'prik tumani</option>
+                        <option value="Farg'ona tumani">Farg'ona tumani</option>
+                        <option value="Furqat tumani">Furqat tumani</option>
+                        <option value="O'zbekiston tumani">O'zbekiston tumani</option>
+                        <option value="Quva tumani">Quva tumani</option>
+                    </select>
+                </div>
+
+                <!-- 4. Maktab -->
+                <div class="filter-group" style="display: flex; flex-direction: column; gap: 6px;">
+                    <label style="font-size: 0.8rem; color: #94a3b8; font-weight: 600;">Maktab</label>
+                    <select id="absentSchoolFilter" onchange="loadAbsentDetails(1)" style="padding: 9px 12px; border-radius: 8px; background: #0f172a; border: 1px solid rgba(255,255,255,0.15); color: #fff; font-size: 0.88rem; width: 100%;">
+                        <option value="Barchasi">Barcha maktablar</option>
+                    </select>
+                </div>
+
+                <!-- 5. Muntazamlik filtri -->
+                <div class="filter-group" style="display: flex; flex-direction: column; gap: 6px;">
+                    <label style="font-size: 0.8rem; color: #94a3b8; font-weight: 600;">Holati (Muntazamlik)</label>
+                    <select id="absentStatusFilter" onchange="loadAbsentDetails(1)" style="padding: 9px 12px; border-radius: 8px; background: #0f172a; border: 1px solid rgba(255,255,255,0.15); color: #fff; font-size: 0.88rem; width: 100%;">
+                        <option value="Barchasi">Barcha o'quvchilar</option>
+                        <option value="muntazam">Faqat muntazam (3+ kun)</option>
+                        <option value="odatiy">Odatiy (1-2 kun)</option>
+                    </select>
+                </div>
+
+                <!-- 6. Universal Search -->
+                <div class="filter-group" style="grid-column: span 2; display: flex; flex-direction: column; gap: 6px;">
+                    <label style="font-size: 0.8rem; color: #94a3b8; font-weight: 600;">Qidiruv (F.I.SH, sinf, manzil, ota-onasi)</label>
+                    <div style="position: relative; width: 100%;">
+                        <i class="fas fa-search" style="position: absolute; left: 12px; top: 12px; color: #94a3b8; font-size: 0.85rem;"></i>
+                        <input type="text" id="absentSearchInput" placeholder="Qidirish uchun yozing..." oninput="onAbsentSearchInput()" style="width: 100%; padding: 9px 12px 9px 36px; border-radius: 8px; background: #0f172a; border: 1px solid rgba(255,255,255,0.15); color: #fff; font-size: 0.88rem;">
+                    </div>
+                </div>
+
+                <!-- 7. Reset & Search buttons -->
+                <div class="filter-group" style="display: flex; gap: 8px;">
+                    <button type="button" onclick="resetAbsentFilters()" class="btn" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #fff; padding: 9px 16px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px;" title="Filtrlarni tozalash">
+                        <i class="fas fa-redo"></i> Tozalash
+                    </button>
+                    <button type="button" onclick="loadAbsentDetails(1)" class="btn" style="background: #6366f1; border: none; color: #fff; padding: 9px 18px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                        <i class="fas fa-filter"></i> Qidirish
+                    </button>
                 </div>
             </div>
-            <div class="table-container">
-                <table id="absentTable">
+
+            <!-- Legend Info / Stats summary badge -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; font-size: 0.85rem;">
+                <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                    <span id="absentsTotalBadge" style="background: rgba(99, 102, 241, 0.2); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.4); padding: 5px 14px; border-radius: 20px; font-weight: 700;">
+                        Jami: 0 ta o'quvchi
+                    </span>
+                    <div style="display: flex; align-items: center; gap: 6px; color: #cbd5e1;">
+                        <span style="display: inline-block; width: 14px; height: 14px; background: rgba(239, 68, 68, 0.4); border: 1px solid #ef4444; border-radius: 3px;"></span>
+                        <span>Muntazam kelmayotganlar (3+ kun) qizil fonda</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px; color: #cbd5e1;">
+                        <i class="fas fa-user-lock" style="color: #10b981;"></i>
+                        <span>Ota-ona telefoni maskalangan (**)</span>
+                    </div>
+                </div>
+                <div id="absentPageInfo" style="color: #94a3b8; font-weight: 600;"></div>
+            </div>
+
+            <!-- Full Width Table Container -->
+            <div class="table-container" style="width: 100%; overflow-x: auto; border-radius: 14px; border: 1px solid rgba(255,255,255,0.1); background: rgba(15, 23, 42, 0.6);">
+                <table id="absentTable" style="width: 100%; border-collapse: collapse; min-width: 1100px;">
                     <thead>
                         <tr>
-                            <th data-i18n="col_district">Hudud</th>
-                            <th data-i18n="col_schools">Maktab</th>
-                            <th data-i18n="col_class">Sinf</th>
-                            <th data-i18n="col_fio">O'quvchi F.I.SH</th>
-                            <th data-i18n="col_address">Yashash manzili</th>
-                            <th data-i18n="col_parent">Ota-onasi</th>
-                            <th data-i18n="col_phone_t">Telefon</th>
-                            <th>Mas'ul inspektor</th>
-                            <th>Kiritgan mas'ul (O'rinbosar)</th>
+                            <th style="width: 50px; text-align: center;">№</th>
+                            <th style="width: 95px; text-align: center;">Sana</th>
+                            <th>Hudud</th>
+                            <th>Maktab</th>
+                            <th style="width: 80px; text-align: center;">Sinf</th>
+                            <th>O'quvchi F.I.SH</th>
+                            <th>Yashash manzili</th>
+                            <th>Ota-onasi</th>
+                            <th>Ota-onasi telefoni</th>
+                            <th style="text-align: center;">Holati (Streak)</th>
+                            <th>Kiritgan mas'ul</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
                 </table>
             </div>
-            <div id="absentPagination" class="pagination-container"
-                style="margin-top:20px; display:flex; justify-content:center; gap:10px;"></div>
+
+            <!-- Pagination Container (20 per page) -->
+            <div id="absentPagination" class="pagination-container" style="margin-top:22px; display:flex; justify-content:center; align-items:center; gap:8px; flex-wrap:wrap;"></div>
         </div>
 
         <!-- 4. RECENT ACTIVITY (LIVE) -->
@@ -2701,6 +2820,10 @@ body, body.page-dashboard {
         if (elTDate) elTDate.value = dateStr;
         const elADate = document.getElementById('absentDate');
         if (elADate) elADate.value = dateStr;
+        const elASDate = document.getElementById('absentStartDate');
+        if (elASDate) elASDate.value = dateStr;
+        const elAEDate = document.getElementById('absentEndDate');
+        if (elAEDate) elAEDate.value = dateStr;
 
         function showTab(id) {
             document.querySelectorAll('.report-view').forEach(v => v.classList.remove('active'));
@@ -3222,37 +3345,225 @@ async function loadViloyatData() {
             }
         }
 
-        async function loadAbsentDetails() {
-            try {
-                const date = document.getElementById('absentDate').value;
-                const res = await apiFetch(`/api/stats/absentees?date=${date}`);
-                const data = Array.isArray(res) ? res : (res && res.rows ? res.rows : []);
-                const tbody = document.querySelector('#absentTable tbody');
-                tbody.innerHTML = '';
+        // ===== SABABSIZLAR NAZORATI LOGIKASI (FILTR, QIDIRUV, 20 TIK PAGINATSIYA, EXCEL) =====
+        let absentCurrentPage = 1;
+        const ABSENT_PAGE_SIZE = 20;
+        let absentSearchTimeout = null;
 
-                if (data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:30px; color:#94a3b8">Ushbu sana bo\'yicha sababsiz dars qoldirgan o\'quvchilar ro\'yxati mavjud emas.</td></tr>';
+        function onAbsentSearchInput() {
+            clearTimeout(absentSearchTimeout);
+            absentSearchTimeout = setTimeout(() => {
+                loadAbsentDetails(1);
+            }, 350);
+        }
+
+        async function onAbsentDistrictChange() {
+            const dist = document.getElementById('absentDistrictFilter')?.value;
+            const schSelect = document.getElementById('absentSchoolFilter');
+            if (schSelect) {
+                if (!dist || dist === 'Barchasi') {
+                    schSelect.innerHTML = '<option value="Barchasi">Barcha maktablar</option>';
+                } else {
+                    schSelect.innerHTML = '<option value="Barchasi">Yuklanmoqda...</option>';
+                    try {
+                        const res = await fetch(`/api/schools?district=${encodeURIComponent(dist)}`);
+                        const schools = await res.json();
+                        const list = Array.isArray(schools) ? schools : (schools[dist] || []);
+                        schSelect.innerHTML = '<option value="Barchasi">Barcha maktablar</option>' + 
+                            list.map(s => `<option value="${s}">${s}</option>`).join('');
+                    } catch (e) {
+                        schSelect.innerHTML = '<option value="Barchasi">Barcha maktablar</option>';
+                    }
+                }
+            }
+            loadAbsentDetails(1);
+        }
+
+        function resetAbsentFilters() {
+            const today = new Date().toISOString().split('T')[0];
+            const sDate = document.getElementById('absentStartDate');
+            const eDate = document.getElementById('absentEndDate');
+            const dist = document.getElementById('absentDistrictFilter');
+            const sch = document.getElementById('absentSchoolFilter');
+            const status = document.getElementById('absentStatusFilter');
+            const search = document.getElementById('absentSearchInput');
+
+            if (sDate) sDate.value = today;
+            if (eDate) eDate.value = today;
+            if (dist) dist.value = 'Barchasi';
+            if (sch) sch.innerHTML = '<option value="Barchasi">Barcha maktablar</option>';
+            if (status) status.value = 'Barchasi';
+            if (search) search.value = '';
+
+            loadAbsentDetails(1);
+        }
+
+        function maskPhoneNumber(phone) {
+            if (!phone) return '-';
+            const str = phone.toString().trim();
+            const digits = str.replace(/[^\d+]/g, '');
+            if (digits.length >= 9) {
+                return digits.substring(0, digits.length - 7) + ' ** *** ** ' + digits.substring(digits.length - 2);
+            }
+            return str.substring(0, Math.max(2, str.length - 4)) + ' ****';
+        }
+
+        async function loadAbsentDetails(page = 1) {
+            absentCurrentPage = page;
+            const tbody = document.querySelector('#absentTable tbody');
+            if (!tbody) return;
+
+            tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; padding:35px; color:#94a3b8;"><i class="fas fa-spinner fa-spin" style="font-size:1.4rem; color:#6366f1; margin-bottom:8px; display:block;"></i> Ma\'lumotlar yuklanmoqda...</td></tr>';
+
+            const sDate = document.getElementById('absentStartDate')?.value || new Date().toISOString().split('T')[0];
+            const eDate = document.getElementById('absentEndDate')?.value || sDate;
+            const district = document.getElementById('absentDistrictFilter')?.value || '';
+            const school = document.getElementById('absentSchoolFilter')?.value || '';
+            const status = document.getElementById('absentStatusFilter')?.value || '';
+            const search = document.getElementById('absentSearchInput')?.value?.trim() || '';
+
+            if (document.getElementById('absentStartDate') && !document.getElementById('absentStartDate').value) {
+                document.getElementById('absentStartDate').value = sDate;
+            }
+            if (document.getElementById('absentEndDate') && !document.getElementById('absentEndDate').value) {
+                document.getElementById('absentEndDate').value = eDate;
+            }
+
+            const offset = (page - 1) * ABSENT_PAGE_SIZE;
+            const params = new URLSearchParams({
+                startDate: sDate,
+                endDate: eDate,
+                limit: ABSENT_PAGE_SIZE,
+                offset: offset
+            });
+            if (district && district !== 'Barchasi') params.append('district', district);
+            if (school && school !== 'Barchasi') params.append('school', school);
+            if (status && status !== 'Barchasi') params.append('status', status);
+            if (search) params.append('search', search);
+
+            try {
+                const res = await fetch(`/api/stats/absentees?${params.toString()}`);
+                const data = await res.json();
+                const rows = data.rows || [];
+                const total = data.total || 0;
+
+                const totalBadge = document.getElementById('absentsTotalBadge');
+                if (totalBadge) totalBadge.textContent = `Jami: ${total} ta o'quvchi`;
+
+                const totalPages = Math.ceil(total / ABSENT_PAGE_SIZE) || 1;
+                const pageInfo = document.getElementById('absentPageInfo');
+                if (pageInfo) pageInfo.textContent = `Sahifa ${page} / ${totalPages}`;
+
+                if (rows.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; padding:40px; color:#94a3b8;"><i class="fas fa-inbox" style="font-size:2rem; margin-bottom:10px; display:block; opacity:0.5;"></i> Belgilangan parametrlar bo\'yicha sababsiz dars qoldirgan o\'quvchilar topilmadi.</td></tr>';
+                    renderAbsentPagination(total, page);
                     return;
                 }
 
-                data.forEach(item => {
-                    const statusColor = (item.streak || 0) >= 3 ? '#ef4444' : '#facc15';
-                    const row = `<tr>
-                        <td style="font-size: 0.8em; color: #94a3b8;">${item.date || '-'}</td>
-                        <td>${item.district || '-'}</td>
-                        <td>${item.school || '-'}</td>
-                        <td>${item.class || '-'}</td>
-                        <td><b>${item.name || '-'}</b></td>
-                        <td>${item.address || '-'}</td>
-                        <td>${item.parent_name || '-'}</td>
-                        <td>${item.parent_phone || '-'}</td>
-                        <td><span class="status-badge" style="background:${statusColor}; color:#000; font-size:10px">${item.status || 'Odatiy'} (${item.streak || 1} kun)</span></td>
-                    </tr>`;
-                    tbody.innerHTML += row;
+                tbody.innerHTML = '';
+                rows.forEach((r, idx) => {
+                    const rowNum = (page - 1) * ABSENT_PAGE_SIZE + idx + 1;
+                    const streak = parseInt(r.streak) || 1;
+                    const isMuntazam = streak >= 3;
+
+                    const rowBgStyle = isMuntazam 
+                        ? 'background: rgba(239, 68, 68, 0.18) !important; border-left: 4px solid #ef4444;' 
+                        : '';
+
+                    const statusBadge = isMuntazam 
+                        ? `<span style="background:#ef4444; color:#fff; padding:3px 9px; border-radius:6px; font-weight:700; font-size:0.75rem; display:inline-flex; align-items:center; gap:4px;"><i class="fas fa-exclamation-triangle"></i> Muntazam (${streak} kun)</span>`
+                        : `<span style="background:rgba(245, 158, 11, 0.2); color:#fbbf24; border:1px solid rgba(245, 158, 11, 0.4); padding:3px 9px; border-radius:6px; font-size:0.75rem; font-weight:600;">Odatiy (${streak} kun)</span>`;
+
+                    const maskedPhone = maskPhoneNumber(r.parent_phone);
+
+                    const tr = document.createElement('tr');
+                    if (rowBgStyle) tr.style.cssText = rowBgStyle;
+                    tr.innerHTML = `
+                        <td style="text-align:center; font-weight:700; color:#94a3b8;">${rowNum}</td>
+                        <td style="text-align:center; font-size:0.82rem; color:#cbd5e1; white-space:nowrap;">${r.date || '-'}</td>
+                        <td><b>${r.district || '-'}</b></td>
+                        <td><b>${r.school || '-'}</b></td>
+                        <td style="text-align:center; font-weight:600;">${r.class || '-'}</td>
+                        <td><b style="color:#f8fafc;">${r.name || '-'}</b></td>
+                        <td style="font-size:0.82rem; color:#cbd5e1;">${r.address || '-'}</td>
+                        <td style="font-size:0.85rem;">${r.parent_name || '-'}</td>
+                        <td style="font-family:monospace; font-weight:600; color:#818cf8; white-space:nowrap;">${maskedPhone}</td>
+                        <td style="text-align:center;">${statusBadge}</td>
+                        <td style="font-size:0.82rem; color:#cbd5e1;">
+                            ${r.submitter_fio || '-'}
+                            ${r.submitter_phone ? `<br><small style="color:#94a3b8;">${r.submitter_phone}</small>` : ''}
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
                 });
+
+                renderAbsentPagination(total, page);
             } catch (e) {
-                document.querySelector('#absentTable tbody').innerHTML = `<tr><td colspan="9" style="text-align:center; padding:30px; color:#ef4444">Xatolik: ${e.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding:30px; color:#ef4444;">Xatolik yuz berdi: ${e.message}</td></tr>`;
             }
+        }
+
+        function renderAbsentPagination(total, page) {
+            const container = document.getElementById('absentPagination');
+            if (!container) return;
+            const totalPages = Math.ceil(total / ABSENT_PAGE_SIZE) || 1;
+            if (totalPages <= 1) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let html = '';
+            if (page > 1) {
+                html += `<button type="button" onclick="loadAbsentDetails(${page - 1})" class="pagination-btn" style="padding:6px 14px; border-radius:8px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#fff; cursor:pointer;"><i class="fas fa-chevron-left"></i> Oldingi</button>`;
+            }
+
+            const startPage = Math.max(1, page - 2);
+            const endPage = Math.min(totalPages, page + 2);
+
+            if (startPage > 1) {
+                html += `<button type="button" onclick="loadAbsentDetails(1)" class="pagination-btn" style="padding:6px 12px; border-radius:8px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#fff; cursor:pointer;">1</button>`;
+                if (startPage > 2) html += `<span style="color:#94a3b8; padding:0 4px;">...</span>`;
+            }
+
+            for (let p = startPage; p <= endPage; p++) {
+                const isActive = p === page;
+                html += `<button type="button" onclick="loadAbsentDetails(${p})" class="pagination-btn ${isActive ? 'active' : ''}" style="padding:6px 12px; border-radius:8px; background:${isActive ? '#6366f1' : 'rgba(255,255,255,0.08)'}; border:1px solid ${isActive ? '#6366f1' : 'rgba(255,255,255,0.15)'}; color:#fff; font-weight:${isActive ? '700' : 'normal'}; cursor:pointer;">${p}</button>`;
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) html += `<span style="color:#94a3b8; padding:0 4px;">...</span>`;
+                html += `<button type="button" onclick="loadAbsentDetails(${totalPages})" class="pagination-btn" style="padding:6px 12px; border-radius:8px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#fff; cursor:pointer;">${totalPages}</button>`;
+            }
+
+            if (page < totalPages) {
+                html += `<button type="button" onclick="loadAbsentDetails(${page + 1})" class="pagination-btn" style="padding:6px 14px; border-radius:8px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#fff; cursor:pointer;">Keyingi <i class="fas fa-chevron-right"></i></button>`;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function exportAbsenteesExcel() {
+            const sDate = document.getElementById('absentStartDate')?.value || '';
+            const eDate = document.getElementById('absentEndDate')?.value || sDate;
+            const district = document.getElementById('absentDistrictFilter')?.value || '';
+            const school = document.getElementById('absentSchoolFilter')?.value || '';
+            const status = document.getElementById('absentStatusFilter')?.value || '';
+            const search = document.getElementById('absentSearchInput')?.value?.trim() || '';
+
+            const token = localStorage.getItem('dashboard_token') || localStorage.getItem('token') || localStorage.getItem('admin_token') || sessionStorage.getItem('dashboard_token') || '';
+            const role = localStorage.getItem('dashboard_role') || '';
+
+            const params = new URLSearchParams();
+            if (sDate) params.append('startDate', sDate);
+            if (eDate) params.append('endDate', eDate);
+            if (district && district !== 'Barchasi') params.append('district', district);
+            if (school && school !== 'Barchasi') params.append('school', school);
+            if (status && status !== 'Barchasi') params.append('status', status);
+            if (search) params.append('search', search);
+            if (token) params.append('token', token);
+            if (role) params.append('role', role);
+
+            window.location.href = `/api/admin/export/absentees?${params.toString()}`;
         }
 
         let districtChart, reasonsChart, trendChart;
