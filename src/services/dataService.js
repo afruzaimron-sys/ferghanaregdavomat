@@ -548,14 +548,32 @@ async function getTodayAbsentsDetails(date, limit = 50, offset = 0) {
         const countRes = await db.query(`SELECT count(*) FROM absent_students s JOIN attendance a ON s.attendance_id = a.id WHERE a.date = $1`, [date]);
         const total = parseInt(countRes.rows[0].count);
         const res = await db.query(`SELECT a.date, a.district, a.school, s.class, s.name, s.address, s.parent_name, s.parent_phone, a.inspector, a.fio as submitter_fio, a.phone as submitter_phone FROM absent_students s JOIN attendance a ON s.attendance_id = a.id WHERE a.date = $1 ORDER BY a.district, a.school, s.class LIMIT $2 OFFSET $3`, [date, limit, offset]);
-        const finalRows = [];
-        for (const r of res.rows) {
-            const streakRes = await db.query(`SELECT count(DISTINCT a.date) as streak FROM absent_students s JOIN attendance a ON s.attendance_id = a.id WHERE s.name = $1 AND a.school = $2 AND a.district = $3 AND a.date <= $4`, [r.name, r.school, r.district, date]);
-            const streak = parseInt(streakRes.rows[0].streak) || 1;
-            finalRows.push({ ...r, streak: streak, status: streak >= 3 ? "Muntazam" : "Odatiy" });
+        
+        const names = res.rows.map(r => r.name);
+        const streakMap = {};
+        if (names.length > 0) {
+            try {
+                const sRes = await db.query(
+                    `SELECT s.name, a.district, a.school, count(DISTINCT a.date) as streak
+                     FROM absent_students s 
+                     JOIN attendance a ON s.attendance_id = a.id 
+                     WHERE s.name = ANY($1) AND a.date <= $2
+                     GROUP BY s.name, a.district, a.school`,
+                    [names, date]
+                );
+                sRes.rows.forEach(sr => {
+                    streakMap[`${sr.name}|${sr.district}|${sr.school}`] = parseInt(sr.streak) || 1;
+                });
+            } catch(stErr) {
+                // Non-fatal, fallback to 1
+            }
         }
+        const finalRows = res.rows.map(r => {
+            const streak = streakMap[`${r.name}|${r.district}|${r.school}`] || 1;
+            return { ...r, streak, status: streak >= 3 ? "Muntazam" : "Odatiy" };
+        });
         return { rows: finalRows, total };
-    } catch (e) { return { rows: [], total: 0 }; }
+    } catch (e) { console.error("getTodayAbsentsDetails error:", e.message); return { rows: [], total: 0 }; }
 }
 
 async function getTrendStats(district = null) {

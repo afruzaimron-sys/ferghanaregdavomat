@@ -821,6 +821,50 @@ app.get('/api/admin/export-subscribers', auth, async (req, res) => {
     }
 });
 
+// ===== OMMAVIY OFERTA ROZILIKLARI API =====
+app.post('/api/oferta/agree', async (req, res) => {
+    try {
+        const { fio, phone, district, school } = req.body;
+        if (!fio || !phone) {
+            return res.status(400).json({ error: "F.I.SH va telefon raqami to'ldirilishi shart!" });
+        }
+        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
+        const userAgent = req.headers['user-agent'] || '';
+        const { recordAgreement } = require('./src/services/ofertaService');
+        const result = await recordAgreement({ fio, phone, district, school, ip, userAgent });
+        res.json({ success: true, message: "Ommaviy oferta shartlariga rozilik muvaffaqiyatli qayd etildi!", id: result.id });
+    } catch (e) {
+        console.error("Oferta Agree Error:", e.message);
+        res.status(500).json({ error: "Rozilikni qayd etishda xatolik yuz berdi" });
+    }
+});
+
+app.get('/api/admin/oferta-agreements', auth, async (req, res) => {
+    const isAuthorized = req.user.username === 'mrqirol' || req.user.role === 'superadmin' || req.user.role === 'admin' || req.user.role === 'specialist';
+    if (!isAuthorized) return res.status(403).json({ error: "Ruxsat yo'q" });
+    try {
+        const { getAgreements } = require('./src/services/ofertaService');
+        const list = await getAgreements();
+        res.json({ success: true, count: list.length, data: list });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.get('/api/admin/export/oferta-agreements', async (req, res) => {
+    const token = req.headers['authorization'] || req.query.token;
+    const { verifyToken } = require('./src/utils/auth');
+    const user = verifyToken(token);
+    const isAuthorized = user && (user.username === 'mrqirol' || user.role === 'superadmin' || user.role === 'admin' || user.role === 'specialist');
+    if (!isAuthorized) return res.status(403).json({ error: "Ruxsat yo'q" });
+    try {
+        const { exportOfertaAgreementsToExcel } = require('./src/services/ofertaService');
+        await exportOfertaAgreementsToExcel(res);
+    } catch (e) {
+        if (!res.headersSent) res.status(500).json({ error: e.message });
+    }
+});
+
 // Admin: Favqulodda / Qo'lda maktabga ruxsat berish
 app.post('/api/admin/grant-school-access', auth, async (req, res) => {
     const isAuthorized = req.user.username === 'mrqirol' || req.user.role === 'superadmin' || req.user.role === 'admin' || req.user.role === 'specialist';
@@ -1640,24 +1684,39 @@ app.get('/api/stats/tuman', auth, async (req, res) => {
     res.json(data);
 });
 
-app.get('/api/stats/absentees', auth, async (req, res) => {
+app.get('/api/stats/absentees', optionalAuth, async (req, res) => {
     const limit = parseInt(req.query.limit) || 50;
     const offset = parseInt(req.query.offset) || 0;
     const now = getFargonaTime();
     const date = req.query.date || now.toISOString().split('T')[0];
     const data = await getTodayAbsentsDetails(date, limit, offset);
 
-    if (req.user.role === 'district') {
+    if (req.user && req.user.role === 'district' && req.user.district) {
         const userDistNorm = normalizeKey(req.user.district);
-        data.rows = data.rows.filter(d => normalizeKey(d.district) === userDistNorm);
+        data.rows = (data.rows || []).filter(d => normalizeKey(d.district) === userDistNorm);
     }
     res.json(data);
 });
 
-app.get('/api/stats/recent', auth, async (req, res) => {
+app.get('/api/stats/latest-date', async (req, res) => {
+    try {
+        if (process.env.DATABASE_URL) {
+            const r = await sqlite.query("SELECT date FROM attendance ORDER BY date DESC, id DESC LIMIT 1");
+            if (r.rows && r.rows.length > 0) return res.json({ date: r.rows[0].date });
+        }
+        const sqliteDb = require('./src/database/sqlite');
+        const r = sqliteDb.prepare("SELECT date FROM attendance ORDER BY date DESC, id DESC LIMIT 1").get();
+        if (r && r.date) return res.json({ date: r.date });
+        res.json({ date: new Date().toISOString().split('T')[0] });
+    } catch(e) {
+        res.json({ date: new Date().toISOString().split('T')[0] });
+    }
+});
+
+app.get('/api/stats/recent', optionalAuth, async (req, res) => {
     const limit = parseInt(req.query.limit) || 50;
     const offset = parseInt(req.query.offset) || 0;
-    const district = req.user.role === 'district' ? req.user.district : null;
+    const district = (req.user && req.user.role === 'district') ? req.user.district : null;
 
     const result = await getRecentActivity(limit, offset, district);
     res.json(result);

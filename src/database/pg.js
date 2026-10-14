@@ -193,6 +193,17 @@ async function initDb() {
                 last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
+            CREATE TABLE IF NOT EXISTS oferta_agreements (
+                id SERIAL PRIMARY KEY,
+                fio TEXT,
+                phone TEXT,
+                district TEXT,
+                school TEXT,
+                ip_address TEXT,
+                user_agent TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
             CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance(date);
             CREATE INDEX IF NOT EXISTS idx_attendance_district ON attendance(district);
             CREATE INDEX IF NOT EXISTS idx_attendance_school ON attendance(school);
@@ -202,6 +213,8 @@ async function initDb() {
             CREATE INDEX IF NOT EXISTS idx_payment_receipts_status ON payment_receipts(status);
             CREATE INDEX IF NOT EXISTS idx_payment_receipts_sender_uid ON payment_receipts(sender_uid);
             CREATE INDEX IF NOT EXISTS idx_web_registered_users_phone ON web_registered_users(phone);
+            CREATE INDEX IF NOT EXISTS idx_oferta_phone ON oferta_agreements(phone);
+            CREATE INDEX IF NOT EXISTS idx_oferta_district_school ON oferta_agreements(district, school);
 
             ALTER TABLE attendance ADD COLUMN IF NOT EXISTS academic_year TEXT DEFAULT '2026-2027';
             ALTER TABLE payment_receipts ADD COLUMN IF NOT EXISTS file_url TEXT;
