@@ -446,6 +446,9 @@
             <a href="oferta.html" class="sidebar-nav-link ">
                 <i class="fas fa-file-signature" style="color:#facc15;"></i> <span class="sidebar-text" data-i18n="menu_oferta">Ommaviy Oferta</span>
             </a>
+            <a href="oferta.html#obuna" class="sidebar-nav-link">
+                <i class="fas fa-credit-card" style="color:#fbbf24;"></i> <span class="sidebar-text" data-i18n="menu_obuna">Obuna va to'lov</span>
+            </a>
             <a href="about.html?tab=hujjatlar" class="sidebar-nav-link">
                 <i class="fas fa-file-contract" style="color:#c084fc;"></i> <span class="sidebar-text" data-i18n="menu_docs">Me'yoriy Hujjatlar</span>
             </a>
@@ -570,206 +573,302 @@
                 </div>
             </div>
 
-            <!-- 3. OMMAVIY OFERTA ROZILIGI VA TO'LOV KARTALARI -->
-            <div class="cards-section-container" id="homeOfertaSectionContainer">
-                <div class="cards-section-title">
-                    <i class="fas fa-file-contract" style="color: #6366f1;"></i>
-                    <span data-i18n="home_oferta_title">Ommaviy Oferta va Tizim Obunasi</span>
-                    <small style="display:block; font-size:0.82rem; color:#94a3b8; font-weight:normal; margin-top:4px;">
-                        To'lov kartalarini ko'rish uchun avval Ommaviy oferta shartlari bilan tanishib, rozilik bildiring
-                    </small>
+            <!-- 3. RASMIY YANGILIKLAR SLIDERI (FARG'ONA VILOYATI MMTB TELEGRAM KANALI @FarVMMTB) -->
+            <div class="vmmtb-news-container" id="vmmtbNewsSection">
+                <style>
+                    .vmmtb-news-container {
+                        max-width: 100%;
+                        margin-top: 36px;
+                        margin-bottom: 24px;
+                    }
+                    .vmmtb-news-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        flex-wrap: wrap;
+                        gap: 12px;
+                        margin-bottom: 16px;
+                    }
+                    .vmmtb-news-header-left {
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                    }
+                    .vmmtb-news-title {
+                        font-size: 1.25rem;
+                        font-weight: 700;
+                        color: #fff;
+                        display: block;
+                    }
+                    .vmmtb-news-sub {
+                        font-size: 0.82rem;
+                        color: #94a3b8;
+                        display: block;
+                    }
+                    .vmmtb-news-sub a {
+                        color: #38bdf8;
+                        text-decoration: none;
+                    }
+                    .vmmtb-news-channel-btn {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 7px 16px;
+                        border-radius: 10px;
+                        background: rgba(56, 189, 248, 0.15);
+                        border: 1px solid rgba(56, 189, 248, 0.35);
+                        color: #38bdf8;
+                        font-size: 0.82rem;
+                        font-weight: 600;
+                        text-decoration: none;
+                        transition: 0.2s;
+                    }
+                    .vmmtb-news-channel-btn:hover {
+                        background: #0284c7;
+                        color: #fff;
+                    }
+                    .vmmtb-slider-card {
+                        background: rgba(30, 41, 59, 0.65);
+                        backdrop-filter: blur(14px);
+                        border: 1px solid rgba(255, 255, 255, 0.1);
+                        border-radius: 20px;
+                        padding: 20px;
+                        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+                        transition: 0.3s ease;
+                    }
+                    .vmmtb-img-wrapper {
+                        position: relative;
+                        width: 100%;
+                        height: 440px;
+                        border-radius: 14px;
+                        overflow: hidden;
+                        cursor: pointer;
+                        background: #0f172a;
+                    }
+                    @media (max-width: 768px) {
+                        .vmmtb-img-wrapper {
+                            height: 240px;
+                        }
+                    }
+                    .vmmtb-img-wrapper img {
+                        width: 100%;
+                        height: 100%;
+                        object-fit: cover;
+                        display: block;
+                        transition: transform 0.4s ease;
+                    }
+                    .vmmtb-img-wrapper:hover img {
+                        transform: scale(1.02);
+                    }
+                    .vmmtb-img-gradient {
+                        position: absolute;
+                        bottom: 0;
+                        left: 0;
+                        right: 0;
+                        height: 35%;
+                        background: linear-gradient(to top, rgba(15, 23, 42, 0.8), transparent);
+                        pointer-events: none;
+                    }
+                    .vmmtb-img-badge {
+                        position: absolute;
+                        top: 14px;
+                        left: 14px;
+                        background: rgba(15, 23, 42, 0.75);
+                        backdrop-filter: blur(8px);
+                        border: 1px solid rgba(255, 255, 255, 0.15);
+                        color: #cbd5e1;
+                        font-size: 0.78rem;
+                        font-weight: 600;
+                        padding: 5px 12px;
+                        border-radius: 20px;
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                    }
+                    .vmmtb-headline-title {
+                        display: block;
+                        margin-top: 16px;
+                        margin-bottom: 6px;
+                        font-size: 1.35rem;
+                        font-weight: 700;
+                        line-height: 1.35;
+                        color: #f8fafc;
+                        text-decoration: none;
+                        transition: color 0.2s;
+                    }
+                    .vmmtb-headline-title:hover {
+                        color: #38bdf8;
+                    }
+                    .vmmtb-headline-excerpt {
+                        font-size: 0.88rem;
+                        color: #94a3b8;
+                        line-height: 1.5;
+                        margin-bottom: 16px;
+                        display: -webkit-box;
+                        -webkit-line-clamp: 2;
+                        -webkit-box-orient: vertical;
+                        overflow: hidden;
+                    }
+                    .vmmtb-bottom-bar {
+                        display: flex;
+                        align-items: center;
+                        gap: 14px;
+                        padding-top: 12px;
+                        border-top: 1px solid rgba(255, 255, 255, 0.08);
+                        flex-wrap: wrap;
+                    }
+                    .vmmtb-nav-arrows {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                    }
+                    .vmmtb-arrow-btn {
+                        width: 36px;
+                        height: 36px;
+                        border-radius: 50%;
+                        background: rgba(255, 255, 255, 0.08);
+                        border: 1px solid rgba(255, 255, 255, 0.15);
+                        color: #fff;
+                        font-size: 0.85rem;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: all 0.2s;
+                    }
+                    .vmmtb-arrow-btn:hover {
+                        background: #38bdf8;
+                        color: #0f172a;
+                        border-color: #38bdf8;
+                        transform: translateY(-1px);
+                    }
+                    .vmmtb-progress-segments {
+                        flex: 1;
+                        min-width: 140px;
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                    }
+                    .vmmtb-segment-dash {
+                        flex: 1;
+                        height: 4px;
+                        border-radius: 2px;
+                        background: rgba(255, 255, 255, 0.2);
+                        cursor: pointer;
+                        transition: background 0.3s ease, height 0.2s;
+                    }
+                    .vmmtb-segment-dash.active {
+                        background: #38bdf8;
+                        height: 5px;
+                    }
+                    .vmmtb-segment-dash:hover {
+                        background: rgba(255, 255, 255, 0.45);
+                    }
+                    .vmmtb-counter-label {
+                        font-size: 0.82rem;
+                        color: #94a3b8;
+                        font-weight: 600;
+                        white-space: nowrap;
+                    }
+                    .vmmtb-read-more-btn {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 6px;
+                        font-size: 0.8rem;
+                        font-weight: 600;
+                        color: #38bdf8;
+                        background: rgba(56, 189, 248, 0.1);
+                        padding: 6px 12px;
+                        border-radius: 8px;
+                        border: 1px solid rgba(56, 189, 248, 0.25);
+                        text-decoration: none;
+                        white-space: nowrap;
+                        transition: 0.2s;
+                    }
+                    .vmmtb-read-more-btn:hover {
+                        background: #38bdf8;
+                        color: #0f172a;
+                    }
+                    html.light-mode .vmmtb-news-title { color: #0f172a !important; }
+                    html.light-mode .vmmtb-news-sub { color: #64748b !important; }
+                    html.light-mode .vmmtb-slider-card {
+                        background: rgba(255, 255, 255, 0.85) !important;
+                        border-color: rgba(203, 213, 225, 0.8) !important;
+                        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06) !important;
+                    }
+                    html.light-mode .vmmtb-headline-title { color: #0f172a !important; }
+                    html.light-mode .vmmtb-headline-title:hover { color: #0284c7 !important; }
+                    html.light-mode .vmmtb-headline-excerpt { color: #475569 !important; }
+                    html.light-mode .vmmtb-bottom-bar { border-top-color: rgba(0, 0, 0, 0.08) !important; }
+                    html.light-mode .vmmtb-arrow-btn {
+                        background: #f1f5f9 !important;
+                        border-color: #cbd5e1 !important;
+                        color: #334155 !important;
+                    }
+                    html.light-mode .vmmtb-arrow-btn:hover {
+                        background: #0284c7 !important;
+                        color: #fff !important;
+                    }
+                    html.light-mode .vmmtb-segment-dash { background: #cbd5e1 !important; }
+                    html.light-mode .vmmtb-segment-dash.active { background: #0284c7 !important; }
+                    html.light-mode .vmmtb-counter-label { color: #64748b !important; }
+                </style>
+
+                <div class="vmmtb-news-header">
+                    <div class="vmmtb-news-header-left">
+                        <i class="fab fa-telegram" style="color: #38bdf8; font-size: 1.6rem;"></i>
+                        <div>
+                            <span class="vmmtb-news-title">Farg‘ona viloyati MMTB Yangiliklari</span>
+                            <span class="vmmtb-news-sub">Boshqarma rasmiy telegram kanalidagi so'nggi yangiliklar (<a href="https://t.me/FarVMMTB" target="_blank">@FarVMMTB</a>)</span>
+                        </div>
+                    </div>
+                    <a href="https://t.me/FarVMMTB" target="_blank" class="vmmtb-news-channel-btn">
+                        <i class="fab fa-telegram-plane"></i> Kanalga a'zo bo'lish
+                    </a>
                 </div>
 
-                <!-- 1. OMMAVIY OFERTA GATEKEEPER -->
-                <div id="homeOfertaGatekeeper" style="background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 20px; padding: 22px; margin-bottom: 20px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(99, 102, 241, 0.2); display: flex; align-items: center; justify-content: center; color: #818cf8; font-size: 1.1rem;">
-                                <i class="fas fa-file-signature"></i>
-                            </div>
-                            <span style="font-weight: 700; color: #fff; font-size: 1.05rem;">Foydalanish va To'lov Shartlari (Oferta)</span>
+                <!-- SLIDER CARD -->
+                <div class="vmmtb-slider-card" id="vmmtbSliderCard">
+                    <!-- IMAGE VIEWPORT -->
+                    <div class="vmmtb-img-wrapper" id="vmmtbImgWrapper" onclick="openCurrentNewsLink()">
+                        <img id="vmmtbNewsImg" src="assets/vmmtb_hero.png" onerror="this.onerror=null; this.src='assets/logo.png';" alt="Yangilik rasmi">
+                        <div class="vmmtb-img-gradient"></div>
+                        <div class="vmmtb-img-badge" id="vmmtbNewsDateBadge">
+                            <i class="far fa-clock"></i> <span id="vmmtbNewsDate">...</span>
                         </div>
-                        <a href="oferta.html" target="_blank" class="btn" style="background: rgba(255,255,255,0.08); color: #38bdf8; font-size: 0.8rem; padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(56,189,248,0.3); text-decoration: none;">
-                            <i class="fas fa-external-link-alt"></i> To'liq oferta matni
-                        </a>
                     </div>
 
-                    <!-- Qisqacha shartlar matni (Scrollable) -->
-                    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 14px 16px; max-height: 180px; overflow-y: auto; font-size: 0.85rem; line-height: 1.6; color: #cbd5e1; margin-bottom: 18px;">
-                        <p style="margin-top:0;"><b>1. Xizmat turi:</b> Ferghanaregdavomat axborot tizimida maktab o'quvchilari davomati monitoringi, avtomatlashtirilgan hisobotlar va QR-kodli ID kartalardan foydalanish.</p>
-                        <p><b>2. Obuna narxi:</b> 1 ta maktab uchun 1 oyga <b>10 000 (o'n ming) so'm</b>. Bir nafar mas'ul to'lov qilsa, butun maktab uchun bot va web tizim cheklovlarsiz ishlaydi.</p>
-                        <p><b>3. Huquqiy asos:</b> O'zbekiston Respublikasi Fuqarolik Kodeksining 367–370-moddalariga muvofiq, ushbu rozilik rasmiy shartnoma kuchiga ega.</p>
-                        <p style="margin-bottom:0;"><b>4. To'lov xavfsizligi:</b> Barcha to'lovlar quyidagi rasmiy kartalarga qabul qilinadi va chek tasdiqlanishi bilan maktab faollashtiriladi.</p>
-                    </div>
+                    <!-- HEADLINE TITLE -->
+                    <a href="#" id="vmmtbNewsTitleLink" target="_blank" class="vmmtb-headline-title">
+                        Yuklanmoqda...
+                    </a>
 
-                    <!-- Rozilik Formasi -->
-                    <div id="homeOfertaFormBox">
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 14px;">
-                            <div>
-                                <label style="font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 4px;">Mas'ul F.I.SH *</label>
-                                <input type="text" id="homeObunaFio" placeholder="Masalan: Abdullayev Anvar" style="width: 100%; padding: 9px 12px; border-radius: 8px; background: #0f172a; border: 1px solid rgba(255,255,255,0.15); color: #fff; font-size: 0.85rem;">
-                            </div>
-                            <div>
-                                <label style="font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 4px;">Telefon raqami *</label>
-                                <input type="tel" id="homeObunaPhone" placeholder="+998 90 123 45 67" style="width: 100%; padding: 9px 12px; border-radius: 8px; background: #0f172a; border: 1px solid rgba(255,255,255,0.15); color: #fff; font-size: 0.85rem;">
-                            </div>
-                            <div>
-                                <label style="font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 4px;">Tuman / Shahar *</label>
-                                <select id="homeObunaDistrict" onchange="homeObunaDistrictChanged()" style="width: 100%; padding: 9px 12px; border-radius: 8px; background: #0f172a; border: 1px solid rgba(255,255,255,0.15); color: #fff; font-size: 0.85rem;">
-                                    <option value="">Tanlang...</option>
-                                    <option value="Farg'ona shahri">Farg'ona shahri</option>
-                                    <option value="Marg'ilon shahri">Marg'ilon shahri</option>
-                                    <option value="Qo'qon shahri">Qo'qon shahri</option>
-                                    <option value="Quvasoy shahri">Quvasoy shahri</option>
-                                    <option value="Bag'dod tumani">Bag'dod tumani</option>
-                                    <option value="Beshariq tumani">Beshariq tumani</option>
-                                    <option value="Buvayda tumani">Buvayda tumani</option>
-                                    <option value="Dang'ara tumani">Dang'ara tumani</option>
-                                    <option value="Yozyovon tumani">Yozyovon tumani</option>
-                                    <option value="Oltiariq tumani">Oltiariq tumani</option>
-                                    <option value="Qo'shtepa tumani">Qo'shtepa tumani</option>
-                                    <option value="Rishton tumani">Rishton tumani</option>
-                                    <option value="So'x tumani">So'x tumani</option>
-                                    <option value="Toshloq tumani">Toshloq tumani</option>
-                                    <option value="Uchko'prik tumani">Uchko'prik tumani</option>
-                                    <option value="Farg'ona tumani">Farg'ona tumani</option>
-                                    <option value="Furqat tumani">Furqat tumani</option>
-                                    <option value="O'zbekiston tumani">O'zbekiston tumani</option>
-                                    <option value="Quva tumani">Quva tumani</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label style="font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 4px;">Maktab *</label>
-                                <select id="homeObunaSchool" style="width: 100%; padding: 9px 12px; border-radius: 8px; background: #0f172a; border: 1px solid rgba(255,255,255,0.15); color: #fff; font-size: 0.85rem;">
-                                    <option value="">Avval tumanni tanlang...</option>
-                                </select>
-                            </div>
-                        </div>
+                    <!-- SHORT TEXT EXCERPT (PREVIEW) -->
+                    <div class="vmmtb-headline-excerpt" id="vmmtbNewsExcerpt"></div>
 
-                        <div style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px;">
-                            <input type="checkbox" id="homeObunaCheck" style="width: 18px; height: 18px; accent-color: #6366f1; cursor: pointer;">
-                            <label for="homeObunaCheck" style="font-size: 0.85rem; color: #f1f5f9; cursor: pointer; user-select: none;">
-                                Men Ommaviy oferta (foydalanish va to'lov shartlari) bilan to'liq tanishdim va barcha shartlarga roziman.
-                            </label>
-                        </div>
-
-                        <div style="display: flex; justify-content: flex-end;">
-                            <button type="button" onclick="confirmHomeObunaAgreement()" class="btn" style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; padding: 10px 22px; border-radius: 10px; font-weight: 700; font-size: 0.9rem; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                                <i class="fas fa-check-circle"></i> Tanishdim va roziman
+                    <!-- BOTTOM CONTROLS ROW (AS IN USER SCREENSHOT) -->
+                    <div class="vmmtb-bottom-bar">
+                        <!-- Navigation circular buttons < > -->
+                        <div class="vmmtb-nav-arrows">
+                            <button type="button" class="vmmtb-arrow-btn" onclick="prevNewsSlide()" title="Oldingi maqola">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <button type="button" class="vmmtb-arrow-btn" onclick="nextNewsSlide()" title="Keyingi maqola">
+                                <i class="fas fa-chevron-right"></i>
                             </button>
                         </div>
+
+                        <!-- Segmented progress line indicators -->
+                        <div class="vmmtb-progress-segments" id="vmmtbSegments"></div>
+
+                        <!-- Counter: 7/8 maqola -->
+                        <div class="vmmtb-counter-label" id="vmmtbCounter">0/0 maqola</div>
+
+                        <!-- Direct Telegram Link -->
+                        <a href="#" id="vmmtbDirectLink" target="_blank" class="vmmtb-read-more-btn" title="Telegramda to'liq o'qish">
+                            <i class="fab fa-telegram-plane"></i> <span>Kanalda o'qish</span>
+                        </a>
                     </div>
-
-                    <!-- Tasdiqlangan holat (Agreed badge) -->
-                    <div id="homeOfertaAgreedNotice" style="display:none; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 12px; padding: 12px 16px; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <i class="fas fa-check-circle" style="color: #10b981; font-size: 1.2rem;"></i>
-                            <div>
-                                <strong style="color: #10b981; font-size: 0.9rem;">Ommaviy oferta tasdiqlangan</strong>
-                                <div id="homeOfertaAgreedMeta" style="color: #cbd5e1; font-size: 0.8rem;"></div>
-                            </div>
-                        </div>
-                        <button type="button" onclick="reopenHomeOfertaForm()" class="btn" style="background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.15); padding: 5px 12px; font-size: 0.78rem; border-radius: 6px; cursor: pointer;">
-                            <i class="fas fa-redo"></i> Qayta tanishish
-                        </button>
-                    </div>
-                </div>
-
-                <!-- 2. ROZILIK BILDIRILGANDAN SO'NG OCHILADIGAN KARTALAR -->
-                <div id="homeUnlockedCards" style="display:none;">
-                    <div style="text-align: center; margin-bottom: 16px; color: #fbbf24; font-size: 0.85rem;">
-                        <i class="fas fa-info-circle"></i> Karta ustiga bosing — asl karta raqamidan avtomatik nusxa olinadi
-                    </div>
-                    <div class="cards-grid">
-                        <!-- HUMO PLASTIC CARD (MASKED DIGITS WITH COPY) -->
-                        <div class="plastic-card humo-card" onclick="copyCardNumber('9860036635761863', 'HUMO Bank Kartasi')" title="Asl karta raqamini nusxalash uchun bosing">
-                            <div class="card-glass-shine"></div>
-                            <div class="card-top-row">
-                                <div class="card-bank-info">
-                                    <span class="bank-badge-title"><i class="fas fa-landmark"></i> <span>BANK KARTASI</span></span>
-                                    <span class="card-type-sub">O'zbekiston Respublikasi</span>
-                                </div>
-                                <div class="card-system-logo">
-                                    <span class="humo-logo-text">HUMO</span>
-                                </div>
-                            </div>
-
-                            <div class="card-chip-row">
-                                <div class="emv-chip gold-chip">
-                                    <div class="chip-line"></div>
-                                    <div class="chip-line"></div>
-                                </div>
-                                <i class="fas fa-wifi contactless-icon"></i>
-                            </div>
-
-                            <!-- YULDUZCHA BILAN MASKALANGAN KARTA RAQAMI -->
-                            <div class="card-number-gold">
-                                <span>9860</span>
-                                <span>••••</span>
-                                <span>••••</span>
-                                <span>1863</span>
-                            </div>
-
-                            <div class="card-bottom-row">
-                                <div class="card-holder-col">
-                                    <span class="card-label">KARTA EGASI</span>
-                                    <span class="card-holder-name">FERGHANAREGDAVOMAT</span>
-                                </div>
-                                <div class="card-copy-badge">
-                                    <i class="fas fa-copy"></i> <span>Nusxa olish</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- VISA PLASTIC CARD (MASKED DIGITS WITH COPY) -->
-                        <div class="plastic-card visa-card" onclick="copyCardNumber('4187800001321124', 'VISA Bank Kartasi')" title="Asl karta raqamini nusxalash uchun bosing">
-                            <div class="card-glass-shine"></div>
-                            <div class="card-top-row">
-                                <div class="card-bank-info">
-                                    <span class="bank-badge-title"><i class="fas fa-globe-americas"></i> <span>BANK KARTASI</span></span>
-                                    <span class="card-type-sub">International Platinum</span>
-                                </div>
-                                <div class="card-system-logo">
-                                    <span class="visa-logo-text">VISA</span>
-                                </div>
-                            </div>
-
-                            <div class="card-chip-row">
-                                <div class="emv-chip gold-chip">
-                                    <div class="chip-line"></div>
-                                    <div class="chip-line"></div>
-                                </div>
-                                <i class="fas fa-wifi contactless-icon"></i>
-                            </div>
-
-                            <!-- YULDUZCHA BILAN MASKALANGAN KARTA RAQAMI -->
-                            <div class="card-number-gold">
-                                <span>4187</span>
-                                <span>••••</span>
-                                <span>••••</span>
-                                <span>1124</span>
-                            </div>
-
-                            <div class="card-bottom-row">
-                                <div class="card-holder-col">
-                                    <span class="card-label">KARTA EGASI</span>
-                                    <span class="card-holder-name">DAVOMAT PRO SUBSCRIPTION</span>
-                                </div>
-                                <div class="card-copy-badge">
-                                    <i class="fas fa-copy"></i> <span>Nusxa olish</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Qulflangan holat banneri -->
-                <div id="homeCardsLockedBanner" style="background: rgba(245, 158, 11, 0.08); border: 1px dashed rgba(245, 158, 11, 0.35); border-radius: 14px; padding: 20px; text-align: center; color: #fbbf24;">
-                    <i class="fas fa-lock" style="font-size: 1.8rem; margin-bottom: 8px; display: block;"></i>
-                    <strong style="font-size: 1rem; color: #fef08a;">Bank Kartalari Qulflangan</strong>
-                    <p style="margin: 4px 0 0; font-size: 0.85rem; color: #fde68a;">
-                        To'lov kartalarini ko'rish uchun yuqoridagi Ommaviy oferta shartlari bilan tanishib, rozilik shaklini tasdiqlang.
-                    </p>
                 </div>
             </div>
         </div>
@@ -818,101 +917,140 @@
     <script src="script.js?v=4"></script>
     <script src="promo-widget.js"></script>
     <script>
-        function initHomeOferta() {
-            const agreed = localStorage.getItem('oferta_agreed');
-            const agreedData = JSON.parse(localStorage.getItem('oferta_agreed_data') || '{}');
-            const formBox = document.getElementById('homeOfertaFormBox');
-            const notice = document.getElementById('homeOfertaAgreedNotice');
-            const cards = document.getElementById('homeUnlockedCards');
-            const locked = document.getElementById('homeCardsLockedBanner');
+        // ===== VMMTB RASMIY YANGILIKLAR SLIDERI LOGIKASI =====
+        let vmmtbNewsData = [];
+        let currentNewsIndex = 0;
+        let vmmtbAutoPlayTimer = null;
 
-            const fioInp = document.getElementById('homeObunaFio');
-            const phoneInp = document.getElementById('homeObunaPhone');
-            if (fioInp && !fioInp.value) fioInp.value = localStorage.getItem('dashboard_fio') || '';
-            if (phoneInp && !phoneInp.value) phoneInp.value = localStorage.getItem('dashboard_phone') || '';
-
-            if (agreed === 'true') {
-                if (formBox) formBox.style.display = 'none';
-                if (notice) {
-                    notice.style.display = 'flex';
-                    const meta = document.getElementById('homeOfertaAgreedMeta');
-                    if (meta) {
-                        meta.textContent = `${agreedData.fio || 'Mas\'ul'} (${agreedData.phone || ''}) • ${agreedData.district || ''} ${agreedData.school || ''}`;
-                    }
-                }
-                if (cards) cards.style.display = 'block';
-                if (locked) locked.style.display = 'none';
-            } else {
-                if (formBox) formBox.style.display = 'block';
-                if (notice) notice.style.display = 'none';
-                if (cards) cards.style.display = 'none';
-                if (locked) locked.style.display = 'block';
-            }
-        }
-
-        async function homeObunaDistrictChanged() {
-            const dist = document.getElementById('homeObunaDistrict')?.value;
-            const schSelect = document.getElementById('homeObunaSchool');
-            if (!schSelect) return;
-            schSelect.innerHTML = '<option value="">Yuklanmoqda...</option>';
-            if (!dist) {
-                schSelect.innerHTML = '<option value="">Avval tumanni tanlang...</option>';
-                return;
-            }
+        async function loadVmmtbNews() {
             try {
-                const res = await fetch(`/api/schools?district=${encodeURIComponent(dist)}`);
-                const schools = await res.json();
-                const list = Array.isArray(schools) ? schools : (schools[dist] || []);
-                schSelect.innerHTML = '<option value="">Maktabni tanlang...</option>' + 
-                    list.map(s => `<option value="${s}">${s}</option>`).join('');
-            } catch (e) {
-                schSelect.innerHTML = '<option value="Boshqa">Boshqa / Umumiy</option>';
-            }
-        }
-
-        async function confirmHomeObunaAgreement() {
-            const fio = document.getElementById('homeObunaFio')?.value.trim();
-            const phone = document.getElementById('homeObunaPhone')?.value.trim();
-            const district = document.getElementById('homeObunaDistrict')?.value;
-            const school = document.getElementById('homeObunaSchool')?.value;
-            const checked = document.getElementById('homeObunaCheck')?.checked;
-
-            if (!fio) return alert("Iltimos, mas'ul shaxs (F.I.SH)ni kiriting!");
-            if (!phone || phone.length < 7) return alert("Iltimos, telefon raqamingizni to'liq kiriting!");
-            if (!district) return alert("Iltimos, tuman yoki shaharni tanlang!");
-            if (!school) return alert("Iltimos, maktabni tanlang!");
-            if (!checked) return alert("Iltimos, Ommaviy oferta shartlari bilan tanishganligingizni tasdiqlovchi bayroqcha (chekbox)ni belgilang!");
-
-            try {
-                const res = await fetch('/api/oferta/agree', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ fio, phone, district, school })
-                });
+                const res = await fetch('/api/news');
                 const data = await res.json();
-                if (!res.ok) throw new Error(data.error || "Rozilikni qayd etishda xatolik");
-
-                localStorage.setItem('oferta_agreed', 'true');
-                localStorage.setItem('oferta_agreed_data', JSON.stringify({
-                    fio, phone, district, school, agreed_at: new Date().toISOString()
-                }));
-
-                alert("✅ Ommaviy oferta shartlariga roziligingiz muvaffaqiyatli qabul qilindi! Bank kartalari ochildi.");
-                initHomeOferta();
-            } catch (e) {
-                alert("Xatolik: " + e.message);
+                if (data && data.success && Array.isArray(data.news) && data.news.length > 0) {
+                    vmmtbNewsData = data.news;
+                    initVmmtbSlider();
+                } else {
+                    displayFallbackNews();
+                }
+            } catch (err) {
+                console.warn('VMMTB News fetch failed:', err);
+                displayFallbackNews();
             }
         }
 
-        function reopenHomeOfertaForm() {
-            const formBox = document.getElementById('homeOfertaFormBox');
-            const notice = document.getElementById('homeOfertaAgreedNotice');
-            if (formBox) formBox.style.display = 'block';
-            if (notice) notice.style.display = 'none';
+        function displayFallbackNews() {
+            vmmtbNewsData = [{
+                title: "Farg'ona viloyati Maktabgacha va maktab ta'limi boshqarmasi rasmiy axborot kanali",
+                text: "Viloyat ta'lim sohasidagi eng so'nggi yangiliklar, qaror va farmoyishlar, maktab hayoti hamda o'quv jarayonlariga oid rasmiy xabarlarni kuzatib boring.",
+                photo: "assets/vmmtb_hero.png",
+                date: new Date().toISOString(),
+                timeFormatted: "Bugun",
+                channelUrl: "https://t.me/FarVMMTB"
+            }];
+            initVmmtbSlider();
         }
 
-        document.addEventListener('DOMContentLoaded', initHomeOferta);
-        initHomeOferta();
+        function initVmmtbSlider() {
+            if (!vmmtbNewsData.length) return;
+            const segmentsContainer = document.getElementById('vmmtbSegments');
+            if (segmentsContainer) {
+                segmentsContainer.innerHTML = vmmtbNewsData.map((_, i) => 
+                    `<div class="vmmtb-segment-dash ${i === 0 ? 'active' : ''}" onclick="goToNewsSlide(${i})" title="${i + 1}-maqola"></div>`
+                ).join('');
+            }
+
+            renderNewsSlide(0);
+            startVmmtbAutoPlay();
+
+            const card = document.getElementById('vmmtbSliderCard');
+            if (card) {
+                card.addEventListener('mouseenter', stopVmmtbAutoPlay);
+                card.addEventListener('mouseleave', startVmmtbAutoPlay);
+            }
+        }
+
+        function renderNewsSlide(idx) {
+            if (!vmmtbNewsData.length) return;
+            if (idx < 0) idx = vmmtbNewsData.length - 1;
+            if (idx >= vmmtbNewsData.length) idx = 0;
+            currentNewsIndex = idx;
+
+            const item = vmmtbNewsData[idx];
+
+            const imgEl = document.getElementById('vmmtbNewsImg');
+            const dateEl = document.getElementById('vmmtbNewsDate');
+            const titleEl = document.getElementById('vmmtbNewsTitleLink');
+            const excerptEl = document.getElementById('vmmtbNewsExcerpt');
+            const counterEl = document.getElementById('vmmtbCounter');
+            const directLinkEl = document.getElementById('vmmtbDirectLink');
+
+            if (imgEl) {
+                imgEl.src = item.photo || 'assets/vmmtb_hero.png';
+                imgEl.alt = item.title || 'Yangilik';
+            }
+            if (dateEl) {
+                const dateStr = item.timeFormatted || (item.date ? new Date(item.date).toLocaleDateString('uz-UZ') : 'Bugun');
+                dateEl.textContent = dateStr;
+            }
+            if (titleEl) {
+                titleEl.textContent = item.title || "Farg'ona viloyati MMTB yangiligi";
+                titleEl.href = item.channelUrl || item.url || 'https://t.me/FarVMMTB';
+            }
+            if (excerptEl) {
+                excerptEl.textContent = item.text || '';
+            }
+            if (counterEl) {
+                counterEl.textContent = `${idx + 1}/${vmmtbNewsData.length} maqola`;
+            }
+            if (directLinkEl) {
+                directLinkEl.href = item.channelUrl || item.url || 'https://t.me/FarVMMTB';
+            }
+
+            // Update segmented dashes
+            const dashes = document.querySelectorAll('.vmmtb-segment-dash');
+            dashes.forEach((dash, i) => {
+                if (i === idx) {
+                    dash.classList.add('active');
+                } else {
+                    dash.classList.remove('active');
+                }
+            });
+        }
+
+        function nextNewsSlide() {
+            renderNewsSlide(currentNewsIndex + 1);
+        }
+
+        function prevNewsSlide() {
+            renderNewsSlide(currentNewsIndex - 1);
+        }
+
+        function goToNewsSlide(i) {
+            renderNewsSlide(i);
+        }
+
+        function openCurrentNewsLink() {
+            const item = vmmtbNewsData[currentNewsIndex];
+            if (item) {
+                window.open(item.channelUrl || item.url || 'https://t.me/FarVMMTB', '_blank');
+            }
+        }
+
+        function startVmmtbAutoPlay() {
+            stopVmmtbAutoPlay();
+            vmmtbAutoPlayTimer = setInterval(() => {
+                nextNewsSlide();
+            }, 7000);
+        }
+
+        function stopVmmtbAutoPlay() {
+            if (vmmtbAutoPlayTimer) {
+                clearInterval(vmmtbAutoPlayTimer);
+                vmmtbAutoPlayTimer = null;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadVmmtbNews);
     </script>
 </body>
 

@@ -236,6 +236,9 @@
             <a href="oferta.html" class="sidebar-nav-link ">
                 <i class="fas fa-file-signature" style="color:#facc15;"></i> <span class="sidebar-text" data-i18n="menu_oferta">Ommaviy Oferta</span>
             </a>
+            <a href="oferta.html#obuna" class="sidebar-nav-link">
+                <i class="fas fa-credit-card" style="color:#fbbf24;"></i> <span class="sidebar-text" data-i18n="menu_obuna">Obuna va to'lov</span>
+            </a>
             <a href="about.html?tab=hujjatlar" class="sidebar-nav-link">
                 <i class="fas fa-file-contract" style="color:#c084fc;"></i> <span class="sidebar-text" data-i18n="menu_docs">Me'yoriy Hujjatlar</span>
             </a>
@@ -285,7 +288,28 @@
                 <span class="setup-warning"><i class="fas fa-exclamation-circle"></i> O'quvchi qo'shish uchun avval quyidagi ma'lumotlarni to'ldiring.</span>
                 <div class="input-group">
                     <label>Hudud (Tuman/Shahar)</label>
-                    <select id="xDistrict" onchange="loadXSchools()"><option value="">Hududni tanlang</option></select>
+                    <select id="xDistrict" onchange="loadXSchools()">
+                        <option value="">Hududni tanlang</option>
+                        <option value="Farg'ona shahri">Farg'ona shahri</option>
+                        <option value="Marg'ilon shahri">Marg'ilon shahri</option>
+                        <option value="Qo'qon shahri">Qo'qon shahri</option>
+                        <option value="Quvasoy shahri">Quvasoy shahri</option>
+                        <option value="Bag'dod tumani">Bag'dod tumani</option>
+                        <option value="Beshariq tumani">Beshariq tumani</option>
+                        <option value="Buvayda tumani">Buvayda tumani</option>
+                        <option value="Dang'ara tumani">Dang'ara tumani</option>
+                        <option value="Yozyovon tumani">Yozyovon tumani</option>
+                        <option value="Oltiariq tumani">Oltiariq tumani</option>
+                        <option value="Qo'shtepa tumani">Qo'shtepa tumani</option>
+                        <option value="Rishton tumani">Rishton tumani</option>
+                        <option value="So'x tumani">So'x tumani</option>
+                        <option value="Toshloq tumani">Toshloq tumani</option>
+                        <option value="Uchko'prik tumani">Uchko'prik tumani</option>
+                        <option value="Farg'ona tumani">Farg'ona tumani</option>
+                        <option value="Furqat tumani">Furqat tumani</option>
+                        <option value="O'zbekiston tumani">O'zbekiston tumani</option>
+                        <option value="Quva tumani">Quva tumani</option>
+                    </select>
                 </div>
                 <div class="input-group">
                     <label>Maktab / Ta'lim muassasasi</label>
@@ -544,21 +568,40 @@
 
         const normDist = (d) => String(d || '').replace(/[‘`ʻ’]/g, "'").trim();
 
-        document.addEventListener('DOMContentLoaded', () => {
+        function getApiPrefix() {
+            if (window.location.protocol === 'file:') return 'http://localhost:3000';
+            if ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && window.location.port && window.location.port !== '3000') {
+                return 'http://localhost:3000';
+            }
+            return '';
+        }
+
+        function initXorijPage() {
             const distSelect = document.getElementById('xDistrict');
-            DISTRICTS.forEach(d => distSelect.add(new Option(d, d)));
+            if (distSelect && distSelect.options.length <= 1) {
+                DISTRICTS.forEach(d => distSelect.add(new Option(d, d)));
+            }
             
             // Check auth for school
             const authDist = localStorage.getItem('xAuthDist');
             const authSchool = localStorage.getItem('xAuthSchool');
             if(authDist && authSchool) {
-                document.getElementById('schoolAuthSection').style.display = 'none';
-                document.getElementById('schoolDataSection').style.display = 'block';
-                document.getElementById('authSchoolName').textContent = authSchool;
+                const secAuth = document.getElementById('schoolAuthSection');
+                const secData = document.getElementById('schoolDataSection');
+                if (secAuth) secAuth.style.display = 'none';
+                if (secData) secData.style.display = 'block';
+                const elName = document.getElementById('authSchoolName');
+                if (elName) elName.textContent = authSchool;
             }
             
             fetchXorijData();
-        });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initXorijPage);
+        } else {
+            initXorijPage();
+        }
 
         async function loadXSchools() {
             const d = document.getElementById('xDistrict').value;
@@ -569,7 +612,7 @@
                 return;
             }
             try {
-                const res = await fetch(`/api/schools?district=${encodeURIComponent(d)}`);
+                const res = await fetch(`${getApiPrefix()}/api/schools?district=${encodeURIComponent(d)}`);
                 if (res.ok) {
                     const schools = await res.json();
                     if (Array.isArray(schools) && schools.length > 0) {
@@ -642,7 +685,7 @@
 
         async function fetchXorijData() {
             try {
-                const res = await fetch('/api/xorij', { headers: { 'Authorization': token } });
+                const res = await fetch(`${getApiPrefix()}/api/xorij`, { headers: { 'Authorization': token } });
                 const json = await res.json();
                 if(json.data) allStudents = json.data; // Try fallback if needed
                 else if(Array.isArray(json)) allStudents = json; // Default API returns array directly
@@ -809,7 +852,7 @@
             }
 
             try {
-                const res = await fetch('/api/xorij/add', {
+                const res = await fetch(`${getApiPrefix()}/api/xorij/add`, {
                     method: 'POST',
                     headers: { 'Authorization': token },
                     body: formData
@@ -844,7 +887,7 @@
             if(document.getElementById('retFile').files[0]) formData.append('doc_return', document.getElementById('retFile').files[0]);
 
             try {
-                const res = await fetch('/api/xorij/return', {
+                const res = await fetch(`${getApiPrefix()}/api/xorij/return`, {
                     method: 'POST',
                     headers: { 'Authorization': token },
                     body: formData
@@ -912,7 +955,7 @@
             }
 
             try {
-                const res = await fetch('/api/xorij/update', {
+                const res = await fetch(`${getApiPrefix()}/api/xorij/update`, {
                     method: 'POST',
                     headers: { 'Authorization': token },
                     body: formData
@@ -938,7 +981,7 @@
             alert("Fayl yuklanmoqda... Iltimos kuting. Bunga biroz vaqt ketishi mumkin.");
             
             try {
-                const res = await fetch('/api/xorij/upload-excel', {
+                const res = await fetch(`${getApiPrefix()}/api/xorij/upload-excel`, {
                     method: 'POST',
                     headers: { 'Authorization': token },
                     body: formData

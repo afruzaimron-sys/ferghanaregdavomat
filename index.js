@@ -865,6 +865,19 @@ app.get('/api/admin/export/oferta-agreements', async (req, res) => {
     }
 });
 
+// ===== RASMIY YANGILIKLAR API (TELEGRAM @FarVMMTB) =====
+app.get('/api/news', async (req, res) => {
+    try {
+        const { getLatestNews } = require('./src/services/newsService');
+        const refresh = req.query.refresh === '1';
+        const news = await getLatestNews(refresh);
+        res.json({ success: true, count: news.length, news });
+    } catch (e) {
+        console.error("News API Error:", e.message);
+        res.status(500).json({ success: false, error: "Yangiliklarni yuklashda xatolik yuz berdi", news: [] });
+    }
+});
+
 // Admin: Favqulodda / Qo'lda maktabga ruxsat berish
 app.post('/api/admin/grant-school-access', auth, async (req, res) => {
     const isAuthorized = req.user.username === 'mrqirol' || req.user.role === 'superadmin' || req.user.role === 'admin' || req.user.role === 'specialist';

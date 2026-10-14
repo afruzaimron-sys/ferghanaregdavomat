@@ -2252,30 +2252,16 @@ const DISTRICTS_LIST = [
     "Furqat tumani", "O'zbekiston tumani", "Quva tumani"
 ];
 
-function cleanDistStr(str) {
-    if (!str) return '';
-    return str.toString().trim().replace(/[‘`’ʻʼ]/g, "'").toLowerCase();
-}
-
 function openDistrictStats(dist) {
     const selector = document.getElementById('tumanSelect');
     if (selector) {
-        const norm = cleanDistStr(dist);
-        let found = false;
-        for (let i = 0; i < selector.options.length; i++) {
-            if (cleanDistStr(selector.options[i].value) === norm) {
-                selector.selectedIndex = i;
-                found = true;
-                break;
-            }
+        let exists = Array.from(selector.options).some(o => o.value === dist);
+        if (!exists) {
+            const opt = document.createElement('option');
+            opt.value = opt.textContent = dist;
+            selector.appendChild(opt);
         }
-        if (!found) {
-            // Check if standard list has it before adding
-            const matchedStd = DISTRICTS_LIST.find(d => cleanDistStr(d) === norm);
-            if (matchedStd) {
-                selector.value = matchedStd;
-            }
-        }
+        selector.value = dist;
     }
     showTab('tuman');
     setTimeout(() => loadTumanData(1), 50);
@@ -2696,17 +2682,12 @@ async function loadTumanData(page = 1) {
     const tumanSelect = document.getElementById('tumanSelect');
     if (!tumanSelect) return;
 
-    if (tumanSelect.options.length !== DISTRICTS_LIST.length && userRole !== 'district') {
-        const prev = tumanSelect.value;
-        tumanSelect.innerHTML = DISTRICTS_LIST.map(d => `<option value="${d}">${d}</option>`).join('');
-        if (prev) {
-            for (let i = 0; i < tumanSelect.options.length; i++) {
-                if (cleanDistStr(tumanSelect.options[i].value) === cleanDistStr(prev)) {
-                    tumanSelect.selectedIndex = i;
-                    break;
-                }
-            }
-        }
+    if (tumanSelect.options.length === 0) {
+        DISTRICTS_LIST.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = opt.textContent = d;
+            tumanSelect.appendChild(opt);
+        });
     }
 
     const userDist = localStorage.getItem('dashboard_district');
@@ -2879,8 +2860,9 @@ async function loadRecentActivity(page = 1) {
 
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px"><i class="fas fa-spinner fa-spin"></i> Yuklanmoqda...</td></tr>';
     try {
-        const rows = Array.isArray(data) ? data : (data && data.rows ? data.rows : []);
-        const total = (data && data.total) || rows.length;
+        const data = await apiFetch(`/api/stats/recent?limit=${monitorLimit}&offset=${offset}`);
+        const rows = data.rows || [];
+        const total = data.total || 0;
 
         tbody.innerHTML = '';
         if (rows.length === 0) {
